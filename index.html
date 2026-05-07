@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Connect – Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  ═══════════════════════════════════════════════
+  TEAMMATE 1 — index.html  (Login / Landing)
+  Rubric Focus:
+    ✅ Content/Design (HTML & CSS)    — 6 Marks
+    ✅ Creativity                     — 2 Marks
+  Features:
+    · Animated particle system
+    · Moving grid background
+    · Glowing orbs (CSS keyframes)
+    · Glassmorphism login card
+    · Role switcher (Admin/Faculty/Student)
+    · Counter animation for stats
+    · Shimmer button effect
+    · Loading bar + success overlay
+    · Eye toggle for password
+    · Shake animation on invalid login
+  ═══════════════════════════════════════════════
+*/
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--blue:#1565C0;--sky:#42A5F5;
+  --gold:#F9A825;--white:#fff;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;display:flex;overflow:hidden}
+
+/* ── BACKGROUND LAYERS ── */
+.bg{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 15% 55%,rgba(21,101,192,0.38) 0%,transparent 55%),
+             radial-gradient(ellipse at 80% 15%,rgba(66,165,245,0.15) 0%,transparent 50%),
+             #0B1F3A}
+.grid{position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(66,165,245,0.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(66,165,245,0.055) 1px,transparent 1px);
+  background-size:52px 52px;animation:gridMove 22s linear infinite}
+@keyframes gridMove{from{background-position:0 0}to{background-position:52px 52px}}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);z-index:0}
+.o1{width:520px;height:520px;background:rgba(21,101,192,.22);top:-160px;right:-120px;animation:ob 8s ease-in-out infinite}
+.o2{width:340px;height:340px;background:rgba(249,168,37,.10);bottom:-90px;left:8%;animation:ob 10s ease-in-out infinite reverse}
+.o3{width:200px;height:200px;background:rgba(66,165,245,.12);top:40%;left:35%;animation:ob 6s ease-in-out infinite}
+@keyframes ob{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.12) translateY(-18px)}}
+#parts{position:fixed;inset:0;z-index:0;pointer-events:none}
+.p{position:absolute;border-radius:50%;animation:rise linear infinite;opacity:0}
+@keyframes rise{0%{transform:translateY(105vh) rotate(0deg);opacity:0}10%{opacity:.7}90%{opacity:.3}100%{transform:translateY(-10vh) rotate(540deg);opacity:0}}
+
+/* ── LAYOUT ── */
+.split{display:flex;width:100%;min-height:100vh;position:relative;z-index:1}
+
+/* ── LEFT HERO PANEL ── */
+.left{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 64px;
+  animation:slideL .85s cubic-bezier(.16,1,.3,1) both}
+@keyframes slideL{from{opacity:0;transform:translateX(-55px)}to{opacity:1;transform:translateX(0)}}
+
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(66,165,245,.1);
+  border:1px solid rgba(66,165,245,.28);padding:6px 16px;border-radius:30px;
+  margin-bottom:30px;animation:up .5s .4s both}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--sky);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.pill span{font-size:11.5px;color:var(--sky);letter-spacing:1.8px;text-transform:uppercase;font-weight:500}
+
+h1{font-family:'Playfair Display',serif;font-size:clamp(52px,6vw,84px);font-weight:900;
+  color:#fff;line-height:1;margin-bottom:12px;animation:up .6s .5s both}
+h1 em{color:var(--sky);font-style:normal}
+h1 span{color:var(--gold)}
+.tag{font-size:16px;color:rgba(255,255,255,.5);font-weight:300;max-width:420px;
+  line-height:1.75;margin-bottom:44px;animation:up .6s .6s both}
+
+/* Features */
+.feats{list-style:none;display:flex;flex-direction:column;gap:13px;margin-bottom:44px}
+.fi{display:flex;align-items:center;gap:12px;animation:up .5s both}
+.fi:nth-child(1){animation-delay:.68s}.fi:nth-child(2){animation-delay:.74s}
+.fi:nth-child(3){animation-delay:.80s}.fi:nth-child(4){animation-delay:.86s}
+.fic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0}
+.fi span{font-size:13.5px;color:rgba(255,255,255,.65)}
+
+/* Stats counters */
+.srow{display:flex;gap:38px;animation:up .5s .96s both}
+.sc .sv{font-family:'Playfair Display',serif;font-size:32px;font-weight:900;color:#fff}
+.sc .sl{font-size:10.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.3px;margin-top:2px}
+
+@keyframes up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RIGHT CARD ── */
+.right{width:440px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  padding:40px 30px;animation:slideR .85s cubic-bezier(.16,1,.3,1) both}
+@keyframes slideR{from{opacity:0;transform:translateX(55px)}to{opacity:1;transform:translateX(0)}}
+
+.card{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-radius:24px;padding:38px 34px;backdrop-filter:blur(28px);
+  box-shadow:0 36px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07)}
+
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.bic{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--sky));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 8px 26px rgba(21,101,192,.5);animation:pop .6s .85s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.bnm{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff}
+.bvr{font-size:9.5px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase}
+
+.ch{font-size:22px;font-weight:600;color:#fff;margin-bottom:4px}
+.cs{font-size:13px;color:rgba(255,255,255,.38);margin-bottom:24px}
+
+/* Role tabs */
+.rtabs{display:flex;gap:4px;background:rgba(255,255,255,.045);border-radius:11px;padding:4px;margin-bottom:22px}
+.rt{flex:1;padding:9px;text-align:center;font-size:12.5px;font-weight:500;border-radius:8px;
+  cursor:pointer;color:rgba(255,255,255,.4);transition:all .25s;user-select:none}
+.rt.on{background:var(--blue);color:#fff;box-shadow:0 4px 16px rgba(21,101,192,.55)}
+
+/* Form fields */
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11.5px;font-weight:500;color:rgba(255,255,255,.42);margin-bottom:5px;letter-spacing:.3px}
+.fw{position:relative}
+.ff{width:100%;padding:12px 42px 12px 14px;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.1);border-radius:10px;font-size:14px;color:#fff;
+  font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+.ff::placeholder{color:rgba(255,255,255,.22)}
+.ff:focus{border-color:var(--sky);background:rgba(66,165,245,.08);box-shadow:0 0 0 3px rgba(66,165,245,.2)}
+.fic2{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:15px;
+  color:rgba(255,255,255,.3);cursor:pointer}
+
+/* Login button with shimmer */
+.btn{width:100%;padding:14px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--blue),#1976D2);color:#fff;
+  font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;
+  position:relative;overflow:hidden;transition:all .25s;
+  box-shadow:0 8px 26px rgba(21,101,192,.5)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(21,101,192,.65)}
+.btn:active{transform:translateY(0)}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent 60%);opacity:0;transition:opacity .25s}
+.btn:hover::before{opacity:1}
+/* Shimmer sweep */
+.btn::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:skewX(-20deg);animation:sweep 3.5s 2.8s infinite}
+@keyframes sweep{0%{left:-100%}100%{left:220%}}
+
+/* Progress bar */
+.lbar{position:fixed;top:0;left:0;height:3px;z-index:999;border-radius:0 4px 4px 0;
+  width:0;transition:width .55s ease;
+  background:linear-gradient(90deg,var(--blue),var(--sky),var(--gold))}
+
+/* Success overlay */
+.ov{display:none;position:fixed;inset:0;z-index:1000;background:var(--navy);
+  flex-direction:column;align-items:center;justify-content:center}
+.ov.show{display:flex;animation:fadeIn .4s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sr{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,#43A047,#66BB6A);
+  display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:22px;
+  animation:popS .55s cubic-bezier(.34,1.56,.64,1) both;
+  box-shadow:0 0 50px rgba(67,160,71,.5)}
+@keyframes popS{from{transform:scale(0)}to{transform:scale(1)}}
+.st{font-family:'Playfair Display',serif;font-size:30px;color:#fff;margin-bottom:8px;animation:up .5s .2s both}
+.ss{font-size:14px;color:rgba(255,255,255,.4);animation:up .5s .35s both}
+
+/* Shake for invalid */
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid"></div>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+<div id="parts"></div>
+<div class="lbar" id="bar"></div>
+
+<div class="split">
+  <!-- HERO LEFT -->
+  <div class="left">
+    <div class="pill"><div class="pdot"></div><span>College Management System</span></div>
+    <h1>Campus<br><em>Connect</em><span>.</span></h1>
+    <p class="tag">One unified portal for students, faculty &amp; administrators — from enrolment to placement.</p>
+    <ul class="feats">
+      <li class="fi"><div class="fic">🎓</div><span>Student enrolment &amp; academic records</span></li>
+      <li class="fi"><div class="fic">✅</div><span>Real-time attendance tracking &amp; alerts</span></li>
+      <li class="fi"><div class="fic">📊</div><span>Results, grades &amp; CGPA analytics</span></li>
+      <li class="fi"><div class="fic">💳</div><span>Fee management &amp; scholarship tracking</span></li>
+    </ul>
+    <div class="srow">
+      <div class="sc"><div class="sv" id="c1">0</div><div class="sl">Students</div></div>
+      <div class="sc"><div class="sv" id="c2">0</div><div class="sl">Faculty</div></div>
+      <div class="sc"><div class="sv" id="c3">0</div><div class="sl">Courses</div></div>
+    </div>
+  </div>
+
+  <!-- FORM RIGHT -->
+  <div class="right">
+    <div class="card" id="card">
+      <div class="brand">
+        <div class="bic">🏛️</div>
+        <div><div class="bnm">CampusConnect</div><div class="bvr">Portal v2.0</div></div>
+      </div>
+      <div class="ch">Welcome back</div>
+      <div class="cs">Sign in to access your portal</div>
+
+      <div class="rtabs">
+        <div class="rt on" onclick="setRole('admin',this)">Admin</div>
+        <div class="rt" onclick="setRole('faculty',this)">Faculty</div>
+        <div class="rt" onclick="setRole('student',this)">Student</div>
+      </div>
+
+      <div class="fg">
+        <label>Email / Username</label>
+        <div class="fw"><input class="ff" id="em" placeholder="Enter email or username"><span class="fic2">👤</span></div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <div class="fw"><input class="ff" id="pw" type="password" placeholder="••••••••"><span class="fic2" id="eye" onclick="togglePw()">👁</span></div>
+      </div>
+      <div id="errMsg" style="color:#FF5252;font-size:12.5px;margin:-6px 0 10px;display:none;"></div>
+      <button class="btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS SCREEN -->
+<div class="ov" id="ok">
+  <div class="sr">✓</div>
+  <div class="st">Welcome, Admin!</div>
+  <div class="ss">Redirecting to Dashboard…</div>
+</div>
+
+<script>
+// ── PARTICLES ──
+const pc=document.getElementById('parts');
+const cols=['rgba(66,165,245,.55)','rgba(249,168,37,.38)','rgba(255,255,255,.22)','rgba(21,101,192,.6)'];
+for(let i=0;i<28;i++){
+  const el=document.createElement('div'); el.className='p';
+  const s=3+Math.random()*9;
+  el.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${cols[~~(Math.random()*4)]};animation-duration:${9+Math.random()*14}s;animation-delay:${-Math.random()*16}s`;
+  pc.appendChild(el);
+}
+
+// ── COUNTER ANIMATION ──
+function counter(id,end,delay=950){
+  setTimeout(()=>{
+    const el=document.getElementById(id); let n=0;
+    const t=setInterval(()=>{ n=Math.min(n+Math.ceil(end/55),end); el.textContent=n; if(n>=end)clearInterval(t); },18);
+  },delay);
+}
+counter('c1',248); counter('c2',32,1050); counter('c3',18,1150);
+
+// ── ROLE SWITCH ──
+// Valid credentials for each role (email OR username accepted)
+const CREDS={
+  admin:  {emails:['admin@gmail.com'],   usernames:['Adminuser'],   p:'Admin@123',   label:'Administrator'},
+  faculty:{emails:['teacher@gmail.com'], usernames:['Teacheruser'], p:'Teacher@123', label:'Faculty Member'},
+  student:{emails:['student@gmail.com'], usernames:['Studentuser'], p:'Student@123', label:'Student'}
+};
+// For placeholder purposes only (no pre-fill)
+const rc={
+  admin:  {e:'',p:'',label:'Administrator'},
+  faculty:{e:'',p:'',label:'Faculty Member'},
+  student:{e:'',p:'',label:'Student'}
+};
+let currentRole='admin';
+function setRole(r,el){
+  currentRole=r;
+  document.querySelectorAll('.rt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('em').value='';
+  document.getElementById('pw').value='';
+  document.getElementById('errMsg').style.display='none';
+}
+
+// ── TOGGLE PASSWORD ──
+let vis=false;
+function togglePw(){
+  vis=!vis;
+  document.getElementById('pw').type=vis?'text':'password';
+  document.getElementById('eye').textContent=vis?'🙈':'👁';
+}
+
+// ── ROLE CONFIG (welcome message + redirect destination) ──
+const roleConfig={
+  admin:{
+    welcomeTitle : 'Welcome, Admin! 👋',
+    welcomeSub   : 'Loading your admin dashboard…',
+    redirect     : 'dashboard.html',
+    avatar       : 'AD',
+    name         : 'Admin User',
+    roleLabel    : 'Administrator'
+  },
+  faculty:{
+    welcomeTitle : 'Welcome, Professor! 🎓',
+    welcomeSub   : 'Opening the faculty portal…',
+    redirect     : 'dashboard.html',
+    avatar       : 'FC',
+    name         : 'Faculty Member',
+    roleLabel    : 'Faculty'
+  },
+  student:{
+    welcomeTitle : 'Welcome, Student! 📚',
+    welcomeSub   : 'Taking you to your student portal…',
+    redirect     : 'students.html',
+    avatar       : 'ST',
+    name         : 'Student',
+    roleLabel    : 'Student'
+  }
+};
+
+// ── EMAIL FORMAT VALIDATION ──
+function isValidEmail(str){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
+}
+
+// ── LOGIN LOGIC ──
+function doLogin(){
+  const e=document.getElementById('em').value.trim();
+  const p=document.getElementById('pw').value.trim();
+  const btn=document.getElementById('loginBtn');
+  const errEl=document.getElementById('errMsg');
+  const card=document.getElementById('card');
+
+  function shakeError(msg){
+    errEl.textContent=msg; errEl.style.display='block';
+    card.style.animation='shake .4s ease';
+    setTimeout(()=>card.style.animation='',400);
+  }
+
+  if(!e||!p){ shakeError('Please enter your email/username and password.'); return; }
+
+  // If input looks like an email, validate its format
+  if(e.includes('@') && !isValidEmail(e)){
+    shakeError('Please enter a valid email address (e.g. admin@gmail.com).'); return;
+  }
+
+  // Validate against correct role credentials
+  const cred=CREDS[currentRole];
+  const emailMatch   = cred.emails.includes(e);
+  const usernameMatch= cred.usernames.includes(e);
+  if((!emailMatch && !usernameMatch) || p!==cred.p){
+    shakeError('Invalid credentials. Check your email/username and password.');
+    return;
+  }
+
+  errEl.style.display='none';
+
+  // Save role info to sessionStorage so all pages can read it
+  const cfg=roleConfig[currentRole];
+  sessionStorage.setItem('cc_role',  currentRole);
+  sessionStorage.setItem('cc_avatar', cfg.avatar);
+  sessionStorage.setItem('cc_name',   cfg.name);
+  sessionStorage.setItem('cc_label',  cfg.roleLabel);
+
+  btn.textContent='Authenticating…'; btn.style.opacity='.7'; btn.disabled=true;
+  document.getElementById('bar').style.width='72%';
+
+  // Update success overlay text dynamically
+  document.querySelector('.st').textContent=cfg.welcomeTitle;
+  document.querySelector('.ss').textContent=cfg.welcomeSub;
+
+  setTimeout(()=>{
+    document.getElementById('bar').style.width='100%';
+    setTimeout(()=>{
+      document.getElementById('ok').classList.add('show');
+      setTimeout(()=>location.href=cfg.redirect, 1700);
+    },320);
+  },1300);
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
