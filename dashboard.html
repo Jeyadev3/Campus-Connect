@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Connect – Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  ═══════════════════════════════════════════════
+  TEAMMATE 2 — dashboard.html  (Main Dashboard)
+  Rubric Focus:
+    ✅ Use of JavaScript                — 4 Marks
+    ✅ Content/Design (HTML & CSS)      — 6 Marks
+  Features:
+    · Live clock (JS setInterval)
+    · Counter animations with easing
+    · Bar chart rendered dynamically in JS
+    · Calendar generator with event markers
+    · Activity feed rendered from JS array
+    · Department stats rendered dynamically
+    · Animated sidebar + topbar entrance
+    · Hover-lift stat cards with progress bars
+    · Notice board from data array
+    · Smooth CSS keyframe animations
+  ═══════════════════════════════════════════════
+*/
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--blue:#1565C0;--sky:#42A5F5;--gold:#F9A825;
+  --light:#F0F4F8;--white:#fff;--text:#1a2340;--muted:#5a6a85;
+  --border:#dde4ef;--success:#2E7D32;--danger:#C62828;--warn:#E65100;
+  --sw:220px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--light);color:var(--text);overflow-x:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:var(--navy);position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column;
+  transform:translateX(-100%);animation:sIn .55s .1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes sIn{to{transform:translateX(0)}}
+.logo{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-t{font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#fff;line-height:1.05;cursor:pointer;transition:color .2s}
+.logo-t:hover{color:var(--sky)}
+.logo-s{font-size:9.5px;color:var(--sky);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.ns{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.nl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:6px 18px 4px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;border-left:3px solid transparent;
+  transition:all .2s;color:rgba(255,255,255,.58);font-size:13.5px;text-decoration:none}
+.ni:hover{background:rgba(255,255,255,.06);color:#fff}
+.ni.on{background:rgba(66,165,245,.15);border-left-color:var(--sky);color:var(--sky);font-weight:500}
+.nic{font-size:15px;width:18px;text-align:center}
+.nbadge{margin-left:auto;background:var(--gold);color:var(--navy);font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.sf{margin-top:auto;padding:14px 18px;border-bottom:none;border-top:1px solid rgba(255,255,255,.07)}
+.uc{display:flex;align-items:center;gap:10px}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--blue));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+.un{font-size:13px;color:#fff;font-weight:500}
+.ur{font-size:10px;color:rgba(255,255,255,.38)}
+.lob{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:15px;transition:color .2s}
+.lob:hover{color:#fff}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sw);display:flex;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:58px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;
+  transform:translateY(-100%);animation:tIn .5s .3s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes tIn{to{transform:translateY(0)}}
+.pt{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--navy)}
+.bc{font-size:12px;color:var(--muted);margin-top:1px}
+.tr{margin-left:auto;display:flex;align-items:center;gap:10px}
+.sb{display:flex;align-items:center;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:6px 12px;gap:8px}
+.sb input{border:none;background:transparent;font-size:13px;color:var(--text);outline:none;width:155px;font-family:'DM Sans',sans-serif}
+.sb input::placeholder{color:var(--muted)}
+.ib{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:#fff;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;
+  transition:background .15s;position:relative}
+.ib:hover{background:var(--light)}
+.nd{position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.dc{font-size:12px;color:var(--muted);background:var(--light);padding:5px 10px;border-radius:6px;border:1px solid var(--border)}
+
+/* ── CONTENT ── */
+.content{padding:24px 28px;flex:1}
+
+/* QUICK LINKS */
+.qg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.qi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 12px;
+  text-align:center;cursor:pointer;transition:all .28s;display:flex;flex-direction:column;
+  align-items:center;gap:8px;text-decoration:none;color:inherit;
+  opacity:0;animation:cIn .5s cubic-bezier(.16,1,.3,1) forwards}
+.qi:nth-child(1){animation-delay:.1s}.qi:nth-child(2){animation-delay:.16s}
+.qi:nth-child(3){animation-delay:.22s}.qi:nth-child(4){animation-delay:.28s}
+@keyframes cIn{to{opacity:1;transform:translateY(0)}}
+.qi:hover{border-color:var(--blue);background:#E3F2FD;transform:translateY(-4px);box-shadow:0 8px 22px rgba(21,101,192,.14)}
+.qi-ic{font-size:24px}.qi-lb{font-size:12px;font-weight:500;color:var(--navy)}
+
+/* STAT CARDS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.sc{background:#fff;border-radius:14px;border:1px solid var(--border);padding:18px;
+  display:flex;flex-direction:column;gap:8px;cursor:default;
+  opacity:0;animation:cIn .5s cubic-bezier(.16,1,.3,1) forwards;
+  transition:box-shadow .2s,transform .2s;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0;transition:opacity .2s}
+.sc:hover{box-shadow:0 8px 26px rgba(11,31,58,.1);transform:translateY(-3px)}
+.sc:hover::after{opacity:1}
+.sc1{animation-delay:.2s}.sc1::after{background:var(--blue)}
+.sc2{animation-delay:.28s}.sc2::after{background:var(--gold)}
+.sc3{animation-delay:.36s}.sc3::after{background:#43A047}
+.sc4{animation-delay:.44s}.sc4::after{background:#E53935}
+.st{display:flex;align-items:center;justify-content:space-between}
+.sic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.bg-bl{background:#E3F2FD}.bg-go{background:#FFF8E1}.bg-gr{background:#E8F5E9}.bg-rd{background:#FFEBEE}
+.ch2{font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px}
+.up{background:#E8F5E9;color:var(--success)}.dn{background:#FFEBEE;color:var(--danger)}
+.sv{font-size:28px;font-weight:700;color:var(--navy);line-height:1;font-family:'Playfair Display',serif}
+.sl{font-size:12px;color:var(--muted)}
+.pw{background:var(--light);border-radius:4px;height:7px;overflow:hidden;margin-top:4px}
+.pb{height:100%;border-radius:4px;animation:pIn 1.2s cubic-bezier(.16,1,.3,1) forwards;transform-origin:left}
+@keyframes pIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.pb-bl{background:var(--blue)}.pb-go{background:var(--gold)}.pb-gr{background:#43A047}.pb-rd{background:#E53935}
+
+/* GRIDS */
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;
+  opacity:0;animation:cIn .5s .55s cubic-bezier(.16,1,.3,1) forwards}
+.card:nth-child(2){animation-delay:.62s}.card:nth-child(3){animation-delay:.7s}.card:nth-child(4){animation-delay:.78s}
+.ch3{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:14px;font-weight:600;color:var(--navy)}
+.cb{padding:16px 18px}
+.bsm{font-size:11.5px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid var(--border);
+  background:#fff;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.bsm:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* CHART */
+.chart{height:150px;display:flex;align-items:flex-end;gap:5px;padding:6px 0}
+.bg2{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar{width:100%;border-radius:5px 5px 0 0;transform-origin:bottom;animation:bIn .7s cubic-bezier(.16,1,.3,1) both;position:relative;overflow:hidden;cursor:pointer;transition:opacity .2s}
+.bar:hover{opacity:.78}
+.bar::after{content:'';position:absolute;top:0;left:0;right:0;height:28%;background:rgba(255,255,255,.2)}
+.bv{font-size:10px;font-weight:600;color:var(--navy)}
+.bl2{font-size:9.5px;color:var(--muted)}
+@keyframes bIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* CALENDAR */
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.ch4{font-size:10px;font-weight:600;color:var(--muted);padding:4px 0}
+.cd{padding:5px 2px;font-size:12px;border-radius:6px;cursor:pointer;transition:background .15s}
+.cd:hover{background:var(--light)}.cto{background:var(--blue);color:#fff;font-weight:600}
+.cev{background:#E3F2FD;color:var(--blue);font-weight:500}.cem{color:#ccc}
+
+/* TIMELINE */
+.tl{list-style:none}
+.ti{display:flex;gap:12px;margin-bottom:16px;animation:rowIn .3s ease both}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.tll{display:flex;flex-direction:column;align-items:center}
+.tdot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.tline{width:2px;background:var(--border);flex:1;margin-top:4px;min-height:18px}
+.ttit{font-size:13px;font-weight:500;color:var(--text)}
+.ttm{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* NOTICES */
+.notice{padding:12px 14px;border-radius:8px;border-left:4px solid;margin-bottom:10px;font-size:13px}
+.ni2{background:#E3F2FD;border-color:var(--blue);color:#0D47A1}
+.nw{background:#FFF3E0;border-color:#FB8C00;color:var(--warn)}
+.ns2{background:#E8F5E9;border-color:#43A047;color:var(--success)}
+.notice b{font-weight:600}
+.nt{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* DEPT PERF */
+.dp{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.dc2{background:var(--light);border-radius:11px;padding:14px;text-align:center;
+  transition:transform .22s,box-shadow .22s;cursor:default}
+.dc2:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(11,31,58,.08)}
+.dn2{font-size:14px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.dv{font-size:22px;font-weight:700;color:var(--blue);margin:6px 0}
+.dlb{font-size:10px;color:var(--muted);margin-bottom:8px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d0d5e0;border-radius:4px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--light)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-t" onclick="location.href='index.html'">Campus<br>Connect</div>
+    <div class="logo-s">Management Portal</div>
+  </div>
+  <div class="ns">
+    <div class="nl">Overview</div>
+    <a class="ni on" href="dashboard.html"><span class="nic">⊞</span> Dashboard</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Academics</div>
+    <a class="ni" href="students.html"><span class="nic">🎓</span> Students <span class="nbadge">248</span></a>
+    <a class="ni" href="students.html"><span class="nic">👨‍🏫</span> Faculty</a>
+    <a class="ni" href="students.html"><span class="nic">📚</span> Courses</a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','attendance');"><span class="nic">✅</span> Attendance <span class="nbadge">3</span></a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','timetable');"><span class="nic">📅</span> Timetable</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Administration</div>
+    <a class="ni" href="results.html"><span class="nic">📊</span> Results &amp; Grades</a>
+    <a class="ni" href="results.html" data-adminonly><span class="nic">💳</span> Fee Management</a>
+    <a class="ni" href="results.html" data-adminonly><span class="nic">📢</span> Notices</a>
+  </div>
+  <div class="sf">
+    <div class="uc">
+      <div class="av" id="sideAvatar">AD</div>
+      <div><div class="un" id="sideName">Admin User</div><div class="ur" id="sideRole">Administrator</div></div>
+      <button class="lob" onclick="location.href='index.html'" title="Logout">⏏</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="pt">Dashboard</div>
+      <div class="bc"><span id="greetMsg">Welcome back</span> &nbsp;·&nbsp; <span id="clk"></span></div>
+    </div>
+    <div class="tr">
+      <div class="sb"><span style="font-size:14px;color:var(--muted)">🔍</span><input type="text" placeholder="Search students, courses…" oninput="gSearch(this.value)"></div>
+      <div class="dc" id="dt"></div>
+      <div class="ib">🔔<div class="nd"></div></div>
+      <div class="ib" title="Settings">⚙</div>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- QUICK ACTIONS -->
+    <div class="qg">
+      <a class="qi" href="students.html"><span class="qi-ic">🎓</span><span class="qi-lb">Students</span></a>
+      <a class="qi" href="results.html" onclick="sessionStorage.setItem('pendingTab','attendance');"><span class="qi-ic">✅</span><span class="qi-lb">Attendance</span></a>
+      <a class="qi" href="results.html"><span class="qi-ic">📊</span><span class="qi-lb">Results</span></a>
+      <a class="qi" href="results.html"><span class="qi-ic">💳</span><span class="qi-lb">Fees</span></a>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="sg">
+      <div class="sc sc1">
+        <div class="st"><div class="sic bg-bl">🎓</div><span class="ch2 up">↑ +12</span></div>
+        <div class="sv" id="sv1">0</div>
+        <div class="sl">Total Students</div>
+        <div class="pw"><div class="pb pb-bl" style="width:82%"></div></div>
+      </div>
+      <div class="sc sc2">
+        <div class="st"><div class="sic bg-go">👨‍🏫</div><span class="ch2 up">↑ +2</span></div>
+        <div class="sv" id="sv2">0</div>
+        <div class="sl">Faculty Members</div>
+        <div class="pw"><div class="pb pb-go" style="width:64%"></div></div>
+      </div>
+      <div class="sc sc3">
+        <div class="st"><div class="sic bg-gr">✅</div><span class="ch2 up">↑ +3%</span></div>
+        <div class="sv" id="sv3">0%</div>
+        <div class="sl">Avg Attendance</div>
+        <div class="pw"><div class="pb pb-gr" style="width:87%"></div></div>
+      </div>
+      <div class="sc sc4">
+        <div class="st"><div class="sic bg-rd">💳</div><span class="ch2 dn">↓ 14</span></div>
+        <div class="sv">₹4.2L</div>
+        <div class="sl">Fees Pending</div>
+        <div class="pw"><div class="pb pb-rd" style="width:18%"></div></div>
+      </div>
+    </div>
+
+    <!-- CHART + CALENDAR -->
+    <div class="g3">
+      <div class="card">
+        <div class="ch3"><span class="ct">Monthly Enrollment Trend</span><button class="bsm">Export CSV</button></div>
+        <div class="cb">
+          <div class="chart" id="chart"></div>
+          <div style="margin-top:10px;display:flex;gap:18px">
+            <span style="font-size:12px;color:var(--muted)">📈 Peak: <b style="color:var(--navy)">Dec (45)</b></span>
+            <span style="font-size:12px;color:var(--muted)">📊 Avg: <b style="color:var(--navy)">29 / month</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch3"><span class="ct">Academic Calendar</span></div>
+        <div class="cb">
+          <div style="text-align:center;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px" id="calHd"></div>
+          <div class="cg" id="cal"></div>
+          <div style="margin-top:11px;font-size:11px;color:var(--muted)"><span style="background:#E3F2FD;color:var(--blue);padding:2px 7px;border-radius:4px;margin-right:6px;">●</span>Events marked</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY + NOTICES -->
+    <div class="g2">
+      <div class="card">
+        <div class="ch3"><span class="ct">Recent Activity</span><button class="bsm">View All</button></div>
+        <div class="cb"><ul class="tl" id="act"></ul></div>
+      </div>
+      <div class="card">
+        <div class="ch3"><span class="ct">Announcements</span><a href="results.html" class="bsm">All Notices</a></div>
+        <div class="cb" id="notices"></div>
+      </div>
+    </div>
+
+    <!-- DEPT PERFORMANCE -->
+    <div class="card" style="margin-bottom:0">
+      <div class="ch3"><span class="ct">Department Performance</span><button class="bsm">Full Report</button></div>
+      <div class="cb"><div class="dp" id="dp"></div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── ROLE-AWARE SESSION: reads who logged in ──
+(function(){
+  const role   = sessionStorage.getItem('cc_role')  || 'admin';
+  const avatar = sessionStorage.getItem('cc_avatar') || 'AD';
+  const name   = sessionStorage.getItem('cc_name')   || 'Admin User';
+  const label  = sessionStorage.getItem('cc_label')  || 'Administrator';
+
+  const roleUI = {
+    admin:   { greet:'Welcome back, Admin',      badge:'bg-blue', dashTitle:'Admin Dashboard' },
+    faculty: { greet:'Welcome back, Professor',  badge:'bg-purple', dashTitle:'Faculty Portal' },
+    student: { greet:'Hello, Student',           badge:'bg-green',  dashTitle:'Student Portal' }
+  };
+  const ui = roleUI[role] || roleUI.admin;
+
+  // Sidebar user chip
+  const avEl   = document.getElementById('sideAvatar');
+  const nameEl = document.getElementById('sideName');
+  const roleEl = document.getElementById('sideRole');
+  if(avEl)   avEl.textContent   = avatar;
+  if(nameEl) nameEl.textContent = name;
+  if(roleEl) roleEl.textContent = label;
+
+  // Topbar greeting (dashboard only)
+  const greetEl = document.getElementById('greetName');
+  if(greetEl) greetEl.textContent = name;
+  const greetMsg = document.getElementById('greetMsg');
+  if(greetMsg) greetMsg.textContent = ui.greet + ', ' + name;
+
+  // Page title tweak (dashboard only)
+  const ptEl = document.querySelector('.pt');
+  if(ptEl && ptEl.textContent==='Dashboard') ptEl.textContent = ui.dashTitle;
+
+  // Student-only: hide admin-only nav items
+  if(role==='student'){
+    document.querySelectorAll('[data-adminonly]').forEach(el=>el.style.display='none');
+  }
+  if(role==='faculty'){
+    document.querySelectorAll('[data-studentonly]').forEach(el=>el.style.display='none');
+  }
+})();
+
+/* ════════════════════════════════════
+   JAVASCRIPT — TEAMMATE 2
+   All data-driven, dynamic rendering
+   ════════════════════════════════════ */
+
+// ── LIVE CLOCK (JS setInterval) ──
+function tick(){
+  const n=new Date();
+  const clk=document.getElementById('clk');
+  const dt=document.getElementById('dt');
+  if(clk) clk.textContent=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(dt)  dt.textContent=n.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+}
+tick(); setInterval(tick,1000);
+
+// ── COUNTER ANIMATION ──
+function counter(id,end,suffix='',delay=400){
+  setTimeout(()=>{
+    const el=document.getElementById(id); if(!el)return; let n=0;
+    const t=setInterval(()=>{ n=Math.min(n+Math.ceil(end/60),end); el.textContent=n+suffix; if(n>=end)clearInterval(t); },18);
+  },delay);
+}
+counter('sv1',248,'',550);
+counter('sv2',32,'',650);
+counter('sv3',87,'%',750);
+
+// ── BAR CHART (JS rendered) ──
+const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const enroll=[18,22,15,30,28,35,20,25,40,38,32,45];
+const maxE=Math.max(...enroll);
+document.getElementById('chart').innerHTML=enroll.map((v,i)=>`
+  <div class="bg2">
+    <span class="bv">${v}</span>
+    <div class="bar" style="height:${Math.round(v/maxE*130)}px;background:${i===4?'var(--gold)':i===11?'var(--blue)':'rgba(21,101,192,.58)'};animation-delay:${i*.055}s" title="${months[i]}: ${v} students"></div>
+    <span class="bl2">${months[i].slice(0,3)}</span>
+  </div>
+`).join('');
+
+// ── CALENDAR (JS generated) ──
+const now=new Date(), yr=now.getFullYear(), mo=now.getMonth();
+document.getElementById('calHd').textContent=new Date(yr,mo).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+const first=new Date(yr,mo,1).getDay(), daysInMo=new Date(yr,mo+1,0).getDate();
+const evDays=[5,10,15,22,28];
+document.getElementById('cal').innerHTML=
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="ch4">${d}</div>`).join('')+
+  Array(first).fill('<div class="cd cem">·</div>').join('')+
+  Array.from({length:daysInMo},(_,i)=>{
+    const d=i+1, cls=d===now.getDate()?'cto':evDays.includes(d)?'cev':'';
+    return `<div class="cd ${cls}">${d}</div>`;
+  }).join('');
+
+// ── ACTIVITY FEED (JS array → DOM) ──
+const activities=[
+  {c:'var(--blue)', t:'New student Priya Sharma enrolled in B.Tech CSE', time:'2 mins ago'},
+  {c:'#43A047',    t:'Semester III results published by Exam Dept',       time:'18 mins ago'},
+  {c:'var(--gold)',t:'Fee reminder sent to 14 pending students',           time:'1 hr ago'},
+  {c:'#E53935',    t:'Attendance alert: 3 students below 75%',            time:'Today, 9:15 AM'},
+  {c:'var(--muted)',t:'Prof. Ramesh updated DBMS course materials',        time:'Yesterday'},
+];
+document.getElementById('act').innerHTML=activities.map((a,i)=>`
+  <li class="ti" style="animation-delay:${.6+i*.07}s">
+    <div class="tll"><div class="tdot" style="background:${a.c}"></div>${i<activities.length-1?'<div class="tline"></div>':''}</div>
+    <div><div class="ttit">${a.t}</div><div class="ttm">${a.time}</div></div>
+  </li>`).join('');
+
+// ── NOTICES (JS array → DOM) ──
+const notices=[
+  {cls:'ni2',t:'Internal Assessment – Week 3',m:'Starts Monday for all departments.',by:'Principal\'s Office · 1 hr ago'},
+  {cls:'nw', t:'Library Book Return',          m:'All books due by 10th June. Fines after deadline.',by:'Library · Today'},
+  {cls:'ns2',t:'Placement Drive – TCS & Infosys',m:'Visiting campus 15th June. Register by 5th.',by:'Placement Cell · Yesterday'},
+];
+document.getElementById('notices').innerHTML=notices.map(n=>`
+  <div class="notice ${n.cls}"><b>${n.t}</b> — ${n.m}<div class="nt">${n.by}</div></div>`).join('');
+
+// ── DEPARTMENT PERFORMANCE (JS rendered) ──
+const depts=[
+  {n:'CSE', s:80, p:96, c:'var(--blue)'},
+  {n:'ECE', s:64, p:91, c:'#7B1FA2'},
+  {n:'ME',  s:55, p:88, c:'#E65100'},
+  {n:'Civil',s:42,p:90, c:'#2E7D32'},
+  {n:'MBA', s:40, p:97, c:'#C62828'},
+];
+document.getElementById('dp').innerHTML=depts.map(d=>`
+  <div class="dc2">
+    <div class="dn2">${d.n}</div>
+    <div class="dv" style="color:${d.c}">${d.s}</div>
+    <div class="dlb">students enrolled</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">Pass Rate</div>
+    <div class="pw"><div class="pb" style="width:${d.p}%;background:${d.c};animation-delay:${Math.random()*.4}s"></div></div>
+    <div style="font-size:11px;font-weight:600;color:${d.c};margin-top:3px">${d.p}%</div>
+  </div>`).join('');
+
+// ── GLOBAL SEARCH ──
+function gSearch(q){
+  if(!q.trim())return;
+  // Navigate to students page with search if query present
+  if(q.length>1) sessionStorage.setItem('searchQ',q.trim());
+}
+</script>
+</body>
+</html>
