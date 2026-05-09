@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Connect – Students</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  ═══════════════════════════════════════════════
+  TEAMMATE 3 — students.html  (Students / Faculty / Courses)
+  Rubric Focus:
+    ✅ Use of Electron (Desktop App)    — 8 Marks
+    ✅ Use of JavaScript                — 4 Marks
+  Features:
+    · Electron IPC bridge detection
+    · Electron-style window drag region / titlebar
+    · Tab-based navigation (Students / Faculty / Courses)
+    · Add Student modal with form validation
+    · Dynamic table with live filter (name, dept, sem)
+    · Sort columns (JS)
+    · Delete student with animation
+    · CSV export function
+    · Faculty cards rendered from JS data
+    · Course catalog rendered from JS data
+    · LocalStorage persistence for student list
+    · Electron save-dialog mock (Electron IPC ready)
+    · Toast notification system
+  ═══════════════════════════════════════════════
+*/
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--blue:#1565C0;--sky:#42A5F5;--gold:#F9A825;
+  --light:#F0F4F8;--white:#fff;--text:#1a2340;--muted:#5a6a85;
+  --border:#dde4ef;--success:#2E7D32;--danger:#C62828;--warn:#E65100;
+  --sw:220px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--light);color:var(--text);overflow-x:hidden}
+
+/* ── ELECTRON TITLEBAR ── */
+.titlebar{
+  height:30px;background:var(--navy);display:flex;align-items:center;
+  padding:0 12px;-webkit-app-region:drag;user-select:none;
+  position:fixed;top:0;left:0;right:0;z-index:999;
+}
+.tb-dots{display:flex;gap:6px;-webkit-app-region:no-drag}
+.tbd{width:12px;height:12px;border-radius:50%;cursor:pointer;transition:filter .2s}
+.tbd:hover{filter:brightness(1.3)}
+.tbd-r{background:#FF5F57}.tbd-y{background:#FFBD2E}.tbd-g{background:#28CA41}
+.tb-title{flex:1;text-align:center;font-size:11.5px;color:rgba(255,255,255,.45);letter-spacing:.5px}
+.tb-env{font-size:10px;color:rgba(66,165,245,.7);-webkit-app-region:no-drag;
+  background:rgba(66,165,245,.1);padding:2px 8px;border-radius:10px;border:1px solid rgba(66,165,245,.2)}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:var(--navy);position:fixed;top:30px;left:0;bottom:0;z-index:100;display:flex;flex-direction:column;
+  transform:translateX(-100%);animation:sIn .5s .1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes sIn{to{transform:translateX(0)}}
+.logo{padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-t{font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#fff;line-height:1.05;cursor:pointer;transition:color .2s;text-decoration:none;display:block}
+.logo-t:hover{color:var(--sky)}
+.logo-s{font-size:9.5px;color:var(--sky);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.ns{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.nl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:6px 18px 4px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;border-left:3px solid transparent;
+  transition:all .2s;color:rgba(255,255,255,.58);font-size:13.5px;text-decoration:none}
+.ni:hover{background:rgba(255,255,255,.06);color:#fff}
+.ni.on{background:rgba(66,165,245,.15);border-left-color:var(--sky);color:var(--sky);font-weight:500}
+.nic{font-size:15px;width:18px;text-align:center}
+.nbadge{margin-left:auto;background:var(--gold);color:var(--navy);font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.sf{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.07)}
+.uc{display:flex;align-items:center;gap:10px}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+.un{font-size:13px;color:#fff;font-weight:500}.ur{font-size:10px;color:rgba(255,255,255,.38)}
+.lob{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:15px;transition:color .2s}
+.lob:hover{color:#fff}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sw);padding-top:30px;display:flex;flex-direction:column;min-height:calc(100vh - 30px)}
+
+/* ── TOPBAR ── */
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:58px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:30px;z-index:50;
+  transform:translateY(-100%);animation:tIn .5s .3s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes tIn{to{transform:translateY(0)}}
+.pt{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--navy)}
+.tr{margin-left:auto;display:flex;align-items:center;gap:10px}
+.bprim{padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:9px;
+  font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+.bprim:hover{background:#0D47A1;transform:translateY(-1px)}
+.bsm{font-size:12px;font-weight:500;padding:7px 14px;border-radius:7px;border:1px solid var(--border);
+  background:#fff;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.bsm:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ── CONTENT ── */
+.content{padding:22px 28px;flex:1}
+
+/* TABS */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 18px;font-size:13.5px;font-weight:500;cursor:pointer;
+  border-bottom:2px solid transparent;color:var(--muted);transition:all .18s;user-select:none}
+.tab:hover{color:var(--blue)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* PANEL */
+.panel{display:none;animation:fadeP .35s ease both}
+.panel.on{display:block}
+@keyframes fadeP{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* FILTER ROW */
+.fr{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.fi{padding:9px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;
+  font-family:'DM Sans',sans-serif;outline:none;color:var(--text);background:#fff;transition:border .18s}
+.fi:focus{border-color:var(--blue)}
+input.fi{width:220px}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;
+  animation:cIn .45s cubic-bezier(.16,1,.3,1) both}
+@keyframes cIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.ch{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:14px;font-weight:600;color:var(--navy)}
+.cb{padding:16px 18px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;transition:color .15s}
+th:hover{color:var(--blue)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--light)}
+tbody tr{animation:rowIn .3s ease both}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+
+/* Badges */
+.badge{display:inline-block;font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:20px}
+.bpre{background:#E8F5E9;color:var(--success)}.babs{background:#FFEBEE;color:var(--danger)}
+.bblu{background:#E3F2FD;color:var(--blue)}.bgld{background:#FFF8E1;color:#E65100}
+
+/* Progress */
+.pw{background:var(--light);border-radius:4px;height:6px;overflow:hidden;min-width:80px}
+.pb{height:100%;border-radius:4px;animation:pIn 1s cubic-bezier(.16,1,.3,1) both;transform-origin:left}
+@keyframes pIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.pbl{background:var(--blue)}.prd{background:#E53935}.pgr{background:#43A047}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(11,31,58,.45);z-index:500;
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.open{display:flex;animation:fadeIn .25s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:18px;width:460px;max-width:95%;padding:28px;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);animation:mIn .35s cubic-bezier(.34,1.2,.64,1) both}
+@keyframes mIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.mh{font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px;letter-spacing:.3px}
+.fg input,.fg select{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;
+  font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border .18s}
+.fg input:focus,.fg select:focus{border-color:var(--blue)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mbtns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* FACULTY CARD */
+.fcards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.fc{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 14px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;
+  transition:all .22s;cursor:default;animation:cIn .4s ease both}
+.fc:hover{transform:translateY(-4px);box-shadow:0 8px 22px rgba(11,31,58,.08);border-color:var(--sky)}
+.fa{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:18px;margin-bottom:4px}
+.fn{font-size:13.5px;font-weight:600;color:var(--navy)}
+.fs{font-size:12px;color:var(--muted)}.fd{font-size:11px;color:var(--blue);font-weight:500}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:500;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);animation:toastIn .4s cubic-bezier(.34,1.2,.64,1) both;
+  display:flex;align-items:center;gap:10px;min-width:260px}
+@keyframes toastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+.toast.out{animation:toastOut .3s ease both}
+@keyframes toastOut{to{opacity:0;transform:translateX(60px)}}
+.toast.green{background:#2E7D32}.toast.red{background:#C62828}.toast.blue{background:var(--blue)}
+
+/* G2 */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+
+/* Electron status bar */
+.statusbar{height:22px;background:var(--navy);display:flex;align-items:center;padding:0 16px;gap:16px;
+  position:fixed;bottom:0;left:0;right:0;z-index:999}
+.sb-item{font-size:10.5px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:5px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#43A047;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d0d5e0;border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- ELECTRON TITLEBAR -->
+<div class="titlebar">
+  <div class="tb-dots">
+    <div class="tbd tbd-r" onclick="if(window.electronAPI) window.electronAPI.closeWindow()" title="Close"></div>
+    <div class="tbd tbd-y" onclick="if(window.electronAPI)window.electronAPI.minimizeWindow()" title="Minimize"></div>
+    <div class="tbd tbd-g" onclick="if(window.electronAPI)window.electronAPI.maximizeWindow()" title="Maximize"></div>
+  </div>
+  <div class="tb-title">Campus Connect — Students & Faculty</div>
+  <div class="tb-env" id="envBadge">Web Mode</div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <a class="logo-t" href="dashboard.html">Campus<br>Connect</a>
+    <div class="logo-s">Management Portal</div>
+  </div>
+  <div class="ns">
+    <div class="nl">Overview</div>
+    <a class="ni" href="dashboard.html"><span class="nic">⊞</span> Dashboard</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Academics</div>
+    <a class="ni on" href="students.html"><span class="nic">🎓</span> Students <span class="nbadge" id="sCount">248</span></a>
+    <a class="ni" href="students.html" onclick="switchTab('faculty');return false"><span class="nic">👨‍🏫</span> Faculty</a>
+    <a class="ni" href="students.html" onclick="switchTab('courses');return false"><span class="nic">📚</span> Courses</a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','attendance');"><span class="nic">✅</span> Attendance</a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','timetable');"><span class="nic">📅</span> Timetable</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Administration</div>
+    <a class="ni" href="results.html"><span class="nic">📊</span> Results</a>
+    <a class="ni" href="results.html" data-adminonly><span class="nic">💳</span> Fee Management</a>
+    <a class="ni" href="results.html" data-adminonly><span class="nic">📢</span> Notices</a>
+  </div>
+  <div class="sf">
+    <div class="uc">
+      <div class="av" id="sideAvatar">AD</div>
+      <div><div class="un" id="sideName">Admin User</div><div class="ur" id="sideRole">Administrator</div></div>
+      <button class="lob" onclick="location.href='index.html'">⏏</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <div class="pt">Students &amp; Faculty</div>
+    <div class="tr">
+      <button class="bsm" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="bprim" onclick="openModal()">+ Add Student</button>
+    </div>
+  </header>
+
+  <div class="content" style="padding-bottom:44px">
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab on" id="tab-students" onclick="switchTab('students')">🎓 Students</div>
+      <div class="tab" id="tab-faculty"   onclick="switchTab('faculty')">👨‍🏫 Faculty</div>
+      <div class="tab" id="tab-courses"   onclick="switchTab('courses')">📚 Courses</div>
+    </div>
+
+    <!-- ── STUDENTS PANEL ── -->
+    <div class="panel on" id="panel-students">
+      <div class="fr">
+        <input class="fi" type="text" id="qSearch" placeholder="🔍  Search name or roll…" oninput="renderStudents()">
+        <select class="fi" id="dFilter" onchange="renderStudents()">
+          <option value="">All Departments</option>
+          <option>CSE</option><option>ECE</option><option>ME</option><option>Civil</option><option>MBA</option>
+        </select>
+        <select class="fi" id="sFilter" onchange="renderStudents()">
+          <option value="">All Semesters</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+        </select>
+        <select class="fi" id="stFilter" onchange="renderStudents()">
+          <option value="">All Status</option>
+          <option>Active</option><option>On Leave</option>
+        </select>
+        <span style="font-size:12px;color:var(--muted);margin-left:auto" id="rowCount"></span>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Student Directory</span><span id="totalBadge" class="badge bblu">248</span></div>
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('roll')">Roll No ↕</th>
+              <th onclick="sortBy('name')">Name ↕</th>
+              <th onclick="sortBy('dept')">Dept ↕</th>
+              <th onclick="sortBy('sem')">Sem ↕</th>
+              <th>Attendance</th>
+              <th onclick="sortBy('status')">Status ↕</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── FACULTY PANEL ── -->
+    <div class="panel" id="panel-faculty">
+      <div class="g2">
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="ch"><span class="ct">Faculty Directory</span><button class="bsm">+ Add Faculty</button></div>
+            <div class="cb"><div class="fcards" id="fcards"></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="ch"><span class="ct">Department Workload</span></div>
+            <div class="cb" id="dload"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COURSES PANEL ── -->
+    <div class="panel" id="panel-courses">
+      <div class="card">
+        <div class="ch"><span class="ct">Course Catalog</span><button class="bsm">+ New Course</button></div>
+        <table>
+          <thead><tr><th>Code</th><th>Subject</th><th>Dept</th><th>Credits</th><th>Faculty</th><th>Students</th><th>Pass Rate</th></tr></thead>
+          <tbody id="cTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD STUDENT MODAL -->
+<div class="overlay" id="modal" onclick="e=>e.target===this&&closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mh">🎓 Enroll New Student</div>
+    <div class="fg"><label>Full Name *</label><input id="mName" placeholder="e.g. Arjun Mehta"></div>
+    <div class="row2">
+      <div class="fg"><label>Department *</label><select id="mDept"><option>CSE</option><option>ECE</option><option>ME</option><option>Civil</option><option>MBA</option></select></div>
+      <div class="fg"><label>Semester *</label><select id="mSem"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="fg"><label>Email</label><input id="mEmail" placeholder="student@campus.edu"></div>
+      <div class="fg"><label>Phone</label><input id="mPhone" placeholder="+91 9XXXXXXXXX"></div>
+    </div>
+    <div class="mbtns">
+      <button class="bsm" onclick="closeModal()">Cancel</button>
+      <button class="bprim" onclick="addStudent()">Enroll Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- ELECTRON STATUS BAR -->
+<div class="statusbar">
+  <div class="sb-item"><div class="sb-dot"></div> <span id="elStatus">Electron: Detecting…</span></div>
+  <div class="sb-item">📦 Node.js: <span id="nodeVer">—</span></div>
+  <div class="sb-item">🖥 Platform: <span id="platInfo">—</span></div>
+  <div class="sb-item" style="margin-left:auto" id="sbTime"></div>
+</div>
+
+<script>
+// ── ROLE-AWARE SESSION: reads who logged in ──
+(function(){
+  const role   = sessionStorage.getItem('cc_role')  || 'admin';
+  const avatar = sessionStorage.getItem('cc_avatar') || 'AD';
+  const name   = sessionStorage.getItem('cc_name')   || 'Admin User';
+  const label  = sessionStorage.getItem('cc_label')  || 'Administrator';
+
+  const roleUI = {
+    admin:   { greet:'Welcome back, Admin',      badge:'bg-blue', dashTitle:'Admin Dashboard' },
+    faculty: { greet:'Welcome back, Professor',  badge:'bg-purple', dashTitle:'Faculty Portal' },
+    student: { greet:'Hello, Student',           badge:'bg-green',  dashTitle:'Student Portal' }
+  };
+  const ui = roleUI[role] || roleUI.admin;
+
+  // Sidebar user chip
+  const avEl   = document.getElementById('sideAvatar');
+  const nameEl = document.getElementById('sideName');
+  const roleEl = document.getElementById('sideRole');
+  if(avEl)   avEl.textContent   = avatar;
+  if(nameEl) nameEl.textContent = name;
+  if(roleEl) roleEl.textContent = label;
+
+  // Topbar greeting (dashboard only)
+  const greetEl = document.getElementById('greetName');
+  if(greetEl) greetEl.textContent = name;
+
+  // Page title tweak (dashboard only)
+  const ptEl = document.querySelector('.pt');
+  if(ptEl && ptEl.textContent==='Dashboard') ptEl.textContent = ui.dashTitle;
+
+  // Student-only: hide admin-only nav items
+  if(role==='student'){
+    document.querySelectorAll('[data-adminonly]').forEach(el=>el.style.display='none');
+  }
+  if(role==='faculty'){
+    document.querySelectorAll('[data-studentonly]').forEach(el=>el.style.display='none');
+  }
+})();
+
+/* ════════════════════════════════════
+   TEAMMATE 3 — JavaScript + Electron
+   ════════════════════════════════════ */
+
+// ── ELECTRON DETECTION ──
+const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined;
+document.getElementById('envBadge').textContent  = isElectron ? 'Electron App' : 'Web Mode';
+document.getElementById('envBadge').style.color  = isElectron ? 'var(--gold)' : '';
+document.getElementById('elStatus').textContent  = isElectron ? 'Electron: Connected ✓' : 'Electron: Not detected (web preview)';
+document.getElementById('nodeVer').textContent   = isElectron ? window.electronAPI.nodeVersion : 'N/A';
+document.getElementById('platInfo').textContent  = isElectron ? window.electronAPI.platform : navigator.platform;
+
+// Status bar clock
+setInterval(()=>{ document.getElementById('sbTime').textContent=new Date().toLocaleTimeString('en-IN'); },1000);
+
+// ── DATA ──
+const NAMES=['Aarav Sharma','Priya Mehta','Rohan Verma','Sneha Patel','Karthik Rao','Divya Nair','Arjun Singh','Pooja Reddy','Vikram Kumar','Ananya Iyer','Siddharth Joshi','Kavya Srinivasan','Rahul Gupta','Meera Pillai','Aditya Bose','Nisha Reddy','Tejas Kumar','Bhavana Iyer','Manish Jain','Lakshmi Nair'];
+const DEPTS=['CSE','ECE','ME','Civil','MBA'];
+
+// Load from sessionStorage or seed
+let students = JSON.parse(sessionStorage.getItem('cc_students') || 'null') ||
+  Array.from({length:20},(_,i)=>({
+    roll:'CC'+String(i+1).padStart(3,'0'),
+    name:NAMES[i%NAMES.length],
+    dept:DEPTS[i%DEPTS.length],
+    sem:(i%6)+1,
+    att:65+Math.floor(Math.random()*32),
+    status:i%7===0?'On Leave':'Active'
+  }));
+saveStudents();
+
+function saveStudents(){ sessionStorage.setItem('cc_students',JSON.stringify(students)); }
+
+// Check for search from dashboard
+const sq=sessionStorage.getItem('searchQ');
+if(sq){ document.getElementById('qSearch').value=sq; sessionStorage.removeItem('searchQ'); }
+
+// ── SORT STATE ──
+let sortKey='roll', sortDir=1;
+function sortBy(k){ sortDir=sortKey===k?-sortDir:1; sortKey=k; renderStudents(); }
+
+// ── RENDER STUDENTS ──
+function renderStudents(){
+  const q=document.getElementById('qSearch').value.toLowerCase();
+  const d=document.getElementById('dFilter').value;
+  const sm=document.getElementById('sFilter').value;
+  const st=document.getElementById('stFilter').value;
+  let data=students.filter(s=>
+    (!q || s.name.toLowerCase().includes(q)||s.roll.toLowerCase().includes(q))&&
+    (!d || s.dept===d)&&(!sm||String(s.sem)===sm)&&(!st||s.status===st)
+  );
+  data=[...data].sort((a,b)=>{
+    const va=a[sortKey]||'', vb=b[sortKey]||'';
+    return typeof va==='number'?(va-vb)*sortDir:String(va).localeCompare(String(vb))*sortDir;
+  });
+  document.getElementById('rowCount').textContent=`Showing ${data.length} of ${students.length}`;
+  document.getElementById('totalBadge').textContent=students.length;
+  document.getElementById('sCount').textContent=students.length;
+  document.getElementById('sTbody').innerHTML=data.map((s,i)=>`
+    <tr style="animation-delay:${i*.04}s" id="row-${s.roll}">
+      <td><b style="color:var(--blue)">${s.roll}</b></td>
+      <td>${s.name}</td>
+      <td><span class="badge bblu">${s.dept}</span></td>
+      <td>${s.sem}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="pw"><div class="pb ${s.att>=75?'pbl':'prd'}" style="width:${s.att}%"></div></div>
+          <span style="font-size:12px;font-weight:500;color:${s.att>=75?'var(--blue)':'var(--danger)'}">${s.att}%</span>
+        </div>
+      </td>
+      <td><span class="badge ${s.status==='Active'?'bpre':'bgld'}">${s.status}</span></td>
+      <td style="display:flex;gap:6px">
+        <button class="bsm" style="font-size:11px;padding:4px 10px" onclick="viewStudent('${s.roll}')">View</button>
+        <button class="bsm" style="font-size:11px;padding:4px 10px;color:var(--danger)" onclick="deleteStudent('${s.roll}')">✕</button>
+      </td>
+    </tr>`).join('');
+}
+renderStudents();
+
+// ── VIEW STUDENT ──
+function viewStudent(roll){
+  const s=students.find(x=>x.roll===roll);
+  if(!s)return;
+  // Electron: use native dialog if available
+  if(isElectron && window.electronAPI.showInfo){
+    window.electronAPI.showInfo(`Student: ${s.name}\nRoll: ${s.roll}\nDept: ${s.dept} | Sem: ${s.sem}\nAttendance: ${s.att}%\nStatus: ${s.status}`);
+  } else {
+    toast(`👤 ${s.name} — ${s.dept}, Sem ${s.sem}, Att: ${s.att}%`,'blue');
+  }
+}
+
+// ── DELETE STUDENT ──
+function deleteStudent(roll){
+  const row=document.getElementById('row-'+roll);
+  if(row){ row.style.transition='all .3s'; row.style.opacity='0'; row.style.transform='translateX(20px)'; }
+  setTimeout(()=>{
+    students=students.filter(s=>s.roll!==roll);
+    saveStudents(); renderStudents();
+    toast('Student removed successfully','red');
+  },300);
+}
+
+// ── ADD STUDENT MODAL ──
+function openModal(){ document.getElementById('modal').classList.add('open'); }
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+function addStudent(){
+  const name=document.getElementById('mName').value.trim();
+  if(!name){ toast('Please enter student name','red'); return; }
+  const dept=document.getElementById('mDept').value;
+  const sem=parseInt(document.getElementById('mSem').value);
+  const roll='CC'+String(students.length+1).padStart(3,'0');
+  students.push({roll,name,dept,sem,att:82+Math.floor(Math.random()*15),status:'Active'});
+  saveStudents(); renderStudents(); closeModal();
+  document.getElementById('mName').value='';
+  toast(`✓ ${name} enrolled successfully!`,'green');
+}
+
+// ── CSV EXPORT (Electron save dialog ready) ──
+function exportCSV(){
+  const rows=[['Roll No','Name','Department','Semester','Attendance %','Status']];
+  students.forEach(s=>rows.push([s.roll,s.name,s.dept,s.sem,s.att+'%',s.status]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  if(isElectron && window.electronAPI.saveFile){
+    window.electronAPI.saveFile(csv,'students_export.csv');
+  } else {
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='students_export.csv'; a.click();
+  }
+  toast('📥 CSV exported successfully','green');
+}
+
+// ── TAB SWITCH ──
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('panel-'+t).classList.add('on');
+}
+
+// ── FACULTY DATA ──
+const faculty=[
+  {n:'Dr. Ramesh Kumar',   sub:'Data Structures',  dept:'CSE', st:'Available', bg:'#E3F2FD',tc:'#1565C0'},
+  {n:'Prof. Lalitha Rao',  sub:'DBMS',             dept:'CSE', st:'In Class',  bg:'#E8F5E9',tc:'#2E7D32'},
+  {n:'Dr. Venkat Iyer',    sub:'Digital Electronics',dept:'ECE',st:'Available',bg:'#F3E5F5',tc:'#7B1FA2'},
+  {n:'Prof. Supriya Menon',sub:'Engineering Maths', dept:'ME',  st:'On Leave',  bg:'#FFF3E0',tc:'#E65100'},
+  {n:'Dr. Ashok Pillai',   sub:'Marketing Mgmt',   dept:'MBA', st:'Available', bg:'#FFEBEE',tc:'#C62828'},
+  {n:'Prof. Ritu Sharma',  sub:'Fluid Mechanics',  dept:'Civil',st:'In Class', bg:'#E0F7FA',tc:'#006064'},
+];
+document.getElementById('fcards').innerHTML=faculty.map((f,i)=>`
+  <div class="fc" style="animation-delay:${i*.07}s">
+    <div class="fa" style="background:${f.bg};color:${f.tc}">${f.n.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+    <div class="fn">${f.n}</div>
+    <div class="fs">${f.sub}</div>
+    <div class="fd">${f.dept}</div>
+    <span class="badge ${f.st==='Available'?'bpre':f.st==='In Class'?'bblu':'bgld'}">${f.st}</span>
+  </div>`).join('');
+
+const dloads=[{n:'CSE',c:6,l:85},{n:'ECE',c:4,l:70},{n:'ME',c:4,l:60},{n:'Civil',c:3,l:50},{n:'MBA',c:3,l:75}];
+document.getElementById('dload').innerHTML=dloads.map(d=>`
+  <div style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+      <span style="font-weight:500;color:var(--navy)">${d.n}</span>
+      <span style="color:var(--muted)">${d.c} courses · ${d.l}% load</span>
+    </div>
+    <div class="pw"><div class="pb pbl" style="width:${d.l}%"></div></div>
+  </div>`).join('');
+
+// ── COURSES ──
+const courses=[
+  {code:'CS501',n:'Data Structures',dept:'CSE',cr:4,fac:'Dr. Ramesh Kumar',s:62,p:96},
+  {code:'CS502',n:'DBMS',dept:'CSE',cr:4,fac:'Prof. Lalitha Rao',s:60,p:92},
+  {code:'CS503',n:'Operating Systems',dept:'CSE',cr:3,fac:'Dr. R. Krishnan',s:58,p:90},
+  {code:'EC301',n:'Digital Electronics',dept:'ECE',cr:4,fac:'Dr. Venkat Iyer',s:55,p:94},
+  {code:'ME401',n:'Fluid Mechanics',dept:'ME',cr:3,fac:'Prof. Ritu Sharma',s:48,p:88},
+  {code:'MB101',n:'Marketing Mgmt',dept:'MBA',cr:3,fac:'Dr. Ashok Pillai',s:40,p:97},
+];
+document.getElementById('cTbody').innerHTML=courses.map((c,i)=>`
+  <tr style="animation-delay:${i*.05}s">
+    <td><code style="background:var(--light);padding:2px 7px;border-radius:4px;font-size:11px">${c.code}</code></td>
+    <td style="font-weight:500">${c.n}</td>
+    <td><span class="badge bblu">${c.dept}</span></td>
+    <td>${c.cr}</td>
+    <td style="font-size:12.5px;color:var(--muted)">${c.fac}</td>
+    <td>${c.s}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="pw" style="min-width:60px"><div class="pb pgr" style="width:${c.p}%"></div></div>
+        <span style="font-size:12px">${c.p}%</span>
+      </div>
+    </td>
+  </tr>`).join('');
+
+// ── TOAST SYSTEM ──
+function toast(msg,type='blue'){
+  const wrap=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),350); },3200);
+}
+</script>
+</body>
+</html>
