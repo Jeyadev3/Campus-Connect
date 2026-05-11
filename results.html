@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Campus Connect – Results & Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  ═══════════════════════════════════════════════
+  TEAMMATE 4 — results.html  (Results / Fees / Notices / Timetable)
+  Rubric Focus:
+    ✅ Use of Electron (Desktop App)    — 8 Marks
+    ✅ Content/Design (HTML & CSS)      — 6 Marks
+    ✅ Creativity                       — 2 Marks
+  Features:
+    · Electron IPC — print dialog, native notifications
+    · Electron titlebar with window controls
+    · Electron status bar
+    · SVG donut chart (CSS animated)
+    · Animated timetable grid
+    · Mark attendance with real-time % update
+    · Publish results with confetti
+    · Fee collection modal with payment animation
+    · Notice posting system
+    · Rich CSS animations (stagger, scale, fade)
+    · Glassmorphism modals
+    · Color-coded timetable
+    · Responsive tab system
+  ═══════════════════════════════════════════════
+*/
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--blue:#1565C0;--sky:#42A5F5;--gold:#F9A825;
+  --light:#F0F4F8;--white:#fff;--text:#1a2340;--muted:#5a6a85;
+  --border:#dde4ef;--success:#2E7D32;--danger:#C62828;--warn:#E65100;
+  --sw:220px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--light);color:var(--text);overflow-x:hidden}
+
+/* ── ELECTRON TITLEBAR ── */
+.titlebar{height:30px;background:var(--navy);display:flex;align-items:center;padding:0 12px;
+  -webkit-app-region:drag;user-select:none;position:fixed;top:0;left:0;right:0;z-index:999}
+.tb-dots{display:flex;gap:6px;-webkit-app-region:no-drag}
+.tbd{width:12px;height:12px;border-radius:50%;cursor:pointer;transition:filter .2s}
+.tbd:hover{filter:brightness(1.4)}
+.tbd-r{background:#FF5F57}.tbd-y{background:#FFBD2E}.tbd-g{background:#28CA41}
+.tb-title{flex:1;text-align:center;font-size:11.5px;color:rgba(255,255,255,.45);letter-spacing:.5px}
+.tb-env{font-size:10px;color:rgba(66,165,245,.7);-webkit-app-region:no-drag;
+  background:rgba(66,165,245,.1);padding:2px 8px;border-radius:10px;border:1px solid rgba(66,165,245,.22)}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);background:var(--navy);position:fixed;top:30px;left:0;bottom:0;z-index:100;display:flex;flex-direction:column;
+  transform:translateX(-100%);animation:sIn .5s .1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes sIn{to{transform:translateX(0)}}
+.logo{padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-t{font-family:'Playfair Display',serif;font-size:18px;font-weight:900;color:#fff;line-height:1.05;cursor:pointer;text-decoration:none;display:block;transition:color .2s}
+.logo-t:hover{color:var(--sky)}
+.logo-s{font-size:9.5px;color:var(--sky);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.ns{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.nl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:6px 18px 4px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 18px;border-left:3px solid transparent;
+  transition:all .2s;color:rgba(255,255,255,.58);font-size:13.5px;text-decoration:none}
+.ni:hover{background:rgba(255,255,255,.06);color:#fff}
+.ni.on{background:rgba(66,165,245,.15);border-left-color:var(--sky);color:var(--sky);font-weight:500}
+.nic{font-size:15px;width:18px;text-align:center}
+.nbadge{margin-left:auto;background:var(--gold);color:var(--navy);font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.sf{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.07)}
+.uc{display:flex;align-items:center;gap:10px}
+.av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--sky),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
+.un{font-size:13px;color:#fff;font-weight:500}.ur{font-size:10px;color:rgba(255,255,255,.38)}
+.lob{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:15px;transition:color .2s}
+.lob:hover{color:#fff}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sw);padding-top:30px;display:flex;flex-direction:column;min-height:calc(100vh - 30px)}
+
+/* ── TOPBAR ── */
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 28px;height:58px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:30px;z-index:50;
+  transform:translateY(-100%);animation:tIn .5s .3s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes tIn{to{transform:translateY(0)}}
+.pt{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--navy)}
+.tr{margin-left:auto;display:flex;align-items:center;gap:10px}
+.bprim{padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+.bprim:hover{background:#0D47A1;transform:translateY(-1px)}
+.bsm{font-size:12px;font-weight:500;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.bsm:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ── CONTENT ── */
+.content{padding:22px 28px;flex:1;padding-bottom:44px}
+
+/* TABS */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 18px;font-size:13.5px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all .18s;user-select:none}
+.tab:hover{color:var(--blue)}.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.panel{display:none;animation:fadeP .35s ease both}.panel.on{display:block}
+@keyframes fadeP{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* GRIDS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+
+/* STAT CARDS */
+.sc{background:#fff;border-radius:14px;border:1px solid var(--border);padding:18px;display:flex;flex-direction:column;gap:8px;
+  opacity:0;animation:cIn .5s cubic-bezier(.16,1,.3,1) forwards;transition:box-shadow .2s,transform .2s;
+  position:relative;overflow:hidden;cursor:default}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0;transition:opacity .2s}
+.sc:hover{box-shadow:0 8px 26px rgba(11,31,58,.1);transform:translateY(-3px)}
+.sc:hover::after{opacity:1}
+@keyframes cIn{to{opacity:1;transform:translateY(0)}}
+.sc:nth-child(1){animation-delay:.15s}.sc:nth-child(1)::after{background:var(--blue)}
+.sc:nth-child(2){animation-delay:.22s}.sc:nth-child(2)::after{background:#43A047}
+.sc:nth-child(3){animation-delay:.29s}.sc:nth-child(3)::after{background:var(--gold)}
+.sc:nth-child(4){animation-delay:.36s}.sc:nth-child(4)::after{background:#E53935}
+.sth{display:flex;align-items:center;justify-content:space-between}
+.sic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.bg-bl{background:#E3F2FD}.bg-gr{background:#E8F5E9}.bg-go{background:#FFF8E1}.bg-rd{background:#FFEBEE}
+.ch2{font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px}
+.up{background:#E8F5E9;color:var(--success)}.dn{background:#FFEBEE;color:var(--danger)}
+.sv{font-size:28px;font-weight:700;color:var(--navy);line-height:1;font-family:'Playfair Display',serif}
+.sl{font-size:12px;color:var(--muted)}
+.pw{background:var(--light);border-radius:4px;height:7px;overflow:hidden;margin-top:4px}
+.pb{height:100%;border-radius:4px;animation:pIn 1.1s cubic-bezier(.16,1,.3,1) both;transform-origin:left}
+@keyframes pIn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.pbl{background:var(--blue)}.pgr{background:#43A047}.prd{background:#E53935}.pgo{background:var(--gold)}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden;
+  opacity:0;animation:cIn .5s .5s cubic-bezier(.16,1,.3,1) forwards;margin-bottom:14px}
+.ch3{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:14px;font-weight:600;color:var(--navy)}.cb{padding:16px 18px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 10px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--light)}
+tbody tr{animation:rowIn .3s ease both}
+@keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.badge{display:inline-block;font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:20px}
+.bpre{background:#E8F5E9;color:var(--success)}.babs{background:#FFEBEE;color:var(--danger)}
+.bblu{background:#E3F2FD;color:var(--blue)}.bgld{background:#FFF8E1;color:#E65100}
+
+/* ── SVG DONUT CHART ── */
+.donut-wrap{display:flex;align-items:center;gap:24px;padding:8px 0}
+.donut-svg{transform:rotate(-90deg);flex-shrink:0}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(90deg)}
+.donut-pct{font-size:22px;font-weight:700;color:var(--navy)}
+.donut-lbl{font-size:11px;color:var(--muted)}
+.donut-rel{position:relative;width:110px;height:110px}
+.legend li{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:7px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── TIMETABLE ── */
+.tt{display:grid;grid-template-columns:70px repeat(5,1fr);gap:3px;font-size:12px}
+.tt-hd{padding:7px 8px;font-weight:600;font-size:11px;text-align:center;color:var(--muted)}
+.tt-tm{padding:7px 10px;font-size:11px;color:var(--muted);text-align:right;line-height:2}
+.tt-cell{padding:8px 7px;border-radius:7px;text-align:center;font-size:11.5px;line-height:1.3;
+  transition:transform .2s,box-shadow .2s;cursor:default}
+.tt-cell:hover:not(.tt-emp){transform:scale(1.04);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.tt-emp{background:var(--light)}
+.tt-sub{font-weight:600;display:block}.tt-rm{font-size:10px;opacity:.8}
+
+/* ── ATTENDANCE MARK ── */
+.att-sel{padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
+.att-sel:focus{border-color:var(--blue)}
+
+/* ── NOTICE ── */
+.notice{padding:14px 16px;border-radius:10px;border-left:4px solid;margin-bottom:12px;font-size:13.5px;
+  animation:slideN .4s ease both}
+@keyframes slideN{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.ni2{background:#E3F2FD;border-color:var(--blue);color:#0D47A1}
+.nw2{background:#FFF3E0;border-color:#FB8C00;color:var(--warn)}
+.ns2{background:#E8F5E9;border-color:#43A047;color:var(--success)}
+.notice b{font-weight:600}.nt{font-size:11px;color:var(--muted);margin-top:3px}
+.notice-del{float:right;background:none;border:none;cursor:pointer;font-size:14px;color:inherit;opacity:.5;transition:opacity .15s}
+.notice-del:hover{opacity:1}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(11,31,58,.45);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.open{display:flex;animation:fadeIn .25s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:18px;width:460px;max-width:95%;padding:28px;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:mIn .35s cubic-bezier(.34,1.2,.64,1) both}
+@keyframes mIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.mh{font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border .18s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue)}
+.mbtns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:46px;right:24px;z-index:998;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 18px;border-radius:10px;color:#fff;font-size:13px;font-weight:500;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);animation:toastIn .4s cubic-bezier(.34,1.2,.64,1) both;min-width:250px}
+@keyframes toastIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+.toast.out{animation:toastOut .3s ease both}
+@keyframes toastOut{to{opacity:0;transform:translateX(50px)}}
+.tg{background:#2E7D32}.tb2{background:var(--blue)}.tr2{background:#C62828}.tgo{background:#E65100}
+
+/* ── CONFETTI ── */
+.conf{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1000}
+.cbit{position:absolute;top:-10px;width:8px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{from{transform:translateY(0) rotate(0deg);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ELECTRON STATUSBAR */
+.statusbar{height:22px;background:var(--navy);display:flex;align-items:center;padding:0 16px;gap:16px;position:fixed;bottom:0;left:0;right:0;z-index:999}
+.sb-item{font-size:10.5px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:5px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:#43A047;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d0d5e0;border-radius:4px}
+
+/* FEE PROGRESS ANIMATION */
+@keyframes feeIn{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+</style>
+</head>
+<body>
+
+<!-- ELECTRON TITLEBAR -->
+<div class="titlebar">
+  <div class="tb-dots">
+    <div class="tbd tbd-r" onclick="if(window.electronAPI)window.electronAPI.closeWindow()" title="Close"></div>
+    <div class="tbd tbd-y" onclick="if(window.electronAPI)window.electronAPI.minimizeWindow()" title="Minimize"></div>
+    <div class="tbd tbd-g" onclick="if(window.electronAPI)window.electronAPI.maximizeWindow()" title="Maximize"></div>
+  </div>
+  <div class="tb-title">Campus Connect — Results, Fees &amp; Admin</div>
+  <div class="tb-env" id="envTag">Web Mode</div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <a class="logo-t" href="dashboard.html">Campus<br>Connect</a>
+    <div class="logo-s">Management Portal</div>
+  </div>
+  <div class="ns">
+    <div class="nl">Overview</div>
+    <a class="ni" href="dashboard.html"><span class="nic">⊞</span> Dashboard</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Academics</div>
+    <a class="ni" href="students.html"><span class="nic">🎓</span> Students</a>
+    <a class="ni" href="students.html"><span class="nic">👨‍🏫</span> Faculty</a>
+    <a class="ni" href="students.html"><span class="nic">📚</span> Courses</a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','attendance');"><span class="nic">✅</span> Attendance</a>
+    <a class="ni" href="results.html" onclick="sessionStorage.setItem('pendingTab','timetable');"><span class="nic">📅</span> Timetable</a>
+  </div>
+  <div class="ns">
+    <div class="nl">Administration</div>
+    <a class="ni on" href="results.html"><span class="nic">📊</span> Results &amp; Grades</a>
+    <a class="ni" href="results.html" onclick="switchTab('fees');return false"><span class="nic">💳</span> Fee Management</a>
+    <a class="ni" href="results.html" onclick="switchTab('notices');return false"><span class="nic">📢</span> Notices</a>
+  </div>
+  <div class="sf">
+    <div class="uc">
+      <div class="av" id="sideAvatar">AD</div>
+      <div><div class="un" id="sideName">Admin User</div><div class="ur" id="sideRole">Administrator</div></div>
+      <button class="lob" onclick="location.href='index.html'">⏏</button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <header class="topbar">
+    <div class="pt">Results &amp; Administration</div>
+    <div class="tr">
+      <button class="bsm" onclick="printReport()">🖨 Print Report</button>
+      <button class="bprim" onclick="publishResults()">📢 Publish Results</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="tabs">
+      <div class="tab on" id="tab-results"    onclick="switchTab('results')">📊 Results</div>
+      <div class="tab"    id="tab-attendance" onclick="switchTab('attendance')">✅ Attendance</div>
+      <div class="tab"    id="tab-timetable"  onclick="switchTab('timetable')">📅 Timetable</div>
+      <div class="tab"    id="tab-fees"       onclick="switchTab('fees')">💳 Fee Management</div>
+      <div class="tab"    id="tab-notices"    onclick="switchTab('notices')">📢 Notices</div>
+    </div>
+
+    <!-- ════ RESULTS ════ -->
+    <div class="panel on" id="panel-results">
+      <div class="sg">
+        <div class="sc"><div class="sth"><div class="sic bg-gr">🏆</div><span class="ch2 up">↑ +2%</span></div><div class="sv" id="sPR">0%</div><div class="sl">Pass Rate</div><div class="pw"><div class="pb pgr" style="width:94%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-bl">⭐</div></div><div class="sv" id="sCA">0.0</div><div class="sl">Average CGPA</div><div class="pw"><div class="pb pbl" style="width:74%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-go">🥇</div></div><div class="sv">9.8</div><div class="sl">Highest CGPA</div><div class="pw"><div class="pb pgo" style="width:98%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-rd">⚠</div><span class="ch2 dn">6</span></div><div class="sv" id="sBP">0</div><div class="sl">Back Papers</div><div class="pw"><div class="pb prd" style="width:6%"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="ch3"><span class="ct">Semester Results</span><div style="display:flex;gap:8px"><button class="bsm" onclick="exportResults()">⬇ Export</button><button class="bsm" onclick="publishResults()">Publish Results</button></div></div>
+        <table>
+          <thead><tr><th>Roll No</th><th>Name</th><th>Dept</th><th>Sem</th><th>CGPA</th><th>Grade</th><th>Status</th></tr></thead>
+          <tbody id="rTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════ ATTENDANCE ════ -->
+    <div class="panel" id="panel-attendance">
+      <div class="g2" style="align-items:start">
+        <!-- Donut Overview -->
+        <div class="card" style="margin-bottom:0">
+          <div class="ch3"><span class="ct">Attendance Overview</span></div>
+          <div class="cb">
+            <div class="donut-wrap">
+              <div class="donut-rel">
+                <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110">
+                  <circle cx="55" cy="55" r="42" fill="none" stroke="#E3F2FD" stroke-width="13"/>
+                  <circle cx="55" cy="55" r="42" fill="none" stroke="#1565C0" stroke-width="13"
+                    stroke-dasharray="263.9" stroke-dashoffset="34.3" stroke-linecap="round"
+                    style="animation:dashIn 1.4s cubic-bezier(.16,1,.3,1) .4s both"/>
+                </svg>
+                <div class="donut-center"><div class="donut-pct">87%</div><div class="donut-lbl">Present</div></div>
+              </div>
+              <ul class="legend" style="list-style:none">
+                <li><div class="dot" style="background:var(--blue)"></div> Present — 87%</li>
+                <li><div class="dot" style="background:#FFCDD2"></div> Absent — 9%</li>
+                <li><div class="dot" style="background:#FFF9C4"></div> Late — 4%</li>
+              </ul>
+            </div>
+            <div style="margin-top:16px">
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px">
+                <span style="color:var(--muted)">Students below 75%</span>
+                <span style="color:var(--danger);font-weight:600">3 students ⚠</span>
+              </div>
+              <div class="pw"><div class="pb prd" style="width:3%"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Mark Attendance -->
+        <div class="card" style="margin-bottom:0">
+          <div class="ch3"><span class="ct">Mark Today's Attendance</span></div>
+          <div class="cb">
+            <div class="fg" style="margin-bottom:10px"><label>Class / Section</label>
+              <select class="att-sel" style="width:100%"><option>B.Tech CSE – Sem 5</option><option>B.Tech ECE – Sem 3</option><option>MBA – Sem 1</option></select></div>
+            <div class="fg" style="margin-bottom:12px"><label>Subject</label>
+              <select class="att-sel" style="width:100%"><option>Data Structures</option><option>DBMS</option><option>OS</option></select></div>
+            <table>
+              <thead><tr><th>Roll</th><th>Name</th><th>Status</th></tr></thead>
+              <tbody id="attMark"></tbody>
+            </table>
+            <div style="margin-top:14px;display:flex;gap:8px">
+              <button class="bprim" onclick="saveAtt()">Save Attendance</button>
+              <button class="bsm" onclick="markAll('P')">All Present</button>
+              <button class="bsm" style="color:var(--danger)" onclick="markAll('A')">All Absent</button>
+            </div>
+            <div style="margin-top:12px;font-size:13px;color:var(--muted)">Live %: <b id="attPct" style="color:var(--navy)">—</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Table -->
+      <div class="card">
+        <div class="ch3"><span class="ct">Student-wise Attendance Report</span><button class="bsm" onclick="exportAtt()">⬇ Export CSV</button></div>
+        <table>
+          <thead><tr><th>Roll No</th><th>Name</th><th>Total</th><th>Present</th><th>Absent</th><th>%</th><th>Status</th></tr></thead>
+          <tbody id="attTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════ TIMETABLE ════ -->
+    <div class="panel" id="panel-timetable">
+      <div class="card">
+        <div class="ch3">
+          <span class="ct">Weekly Timetable</span>
+          <select class="att-sel" id="ttCls" onchange="renderTT()">
+            <option>B.Tech CSE – Sem 5</option>
+            <option>B.Tech ECE – Sem 3</option>
+            <option>MBA – Sem 1</option>
+          </select>
+        </div>
+        <div class="cb"><div class="tt" id="ttGrid"></div></div>
+      </div>
+    </div>
+
+    <!-- ════ FEE MANAGEMENT ════ -->
+    <div class="panel" id="panel-fees">
+      <div class="sg">
+        <div class="sc"><div class="sth"><div class="sic bg-gr">💰</div><span class="ch2 up">82%</span></div><div class="sv">₹18.4L</div><div class="sl">Collected</div><div class="pw"><div class="pb pgr" style="width:82%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-rd">⏳</div><span class="ch2 dn">18%</span></div><div class="sv">₹4.2L</div><div class="sl">Pending</div><div class="pw"><div class="pb prd" style="width:18%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-bl">📋</div></div><div class="sv" id="unpaidCount">34</div><div class="sl">Unpaid Students</div><div class="pw"><div class="pb pbl" style="width:34%"></div></div></div>
+        <div class="sc"><div class="sth"><div class="sic bg-go">🎁</div></div><div class="sv">12</div><div class="sl">Scholarships</div><div class="pw"><div class="pb pgo" style="width:20%"></div></div></div>
+      </div>
+      <div class="card">
+        <div class="ch3"><span class="ct">Fee Records</span><button class="bsm" onclick="sendReminders()">📧 Send Reminders</button></div>
+        <table>
+          <thead><tr><th>Roll No</th><th>Name</th><th>Total Fee</th><th>Paid</th><th>Balance</th><th>Paid %</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="feeTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ════ NOTICES ════ -->
+    <div class="panel" id="panel-notices">
+      <div class="g3">
+        <div>
+          <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+            <button class="bprim" onclick="openNoticeModal()">+ Post Notice</button>
+            <select class="att-sel" id="ncatFilter" onchange="renderNotices()">
+              <option value="">All Categories</option>
+              <option>Academic</option><option>Exam</option><option>Finance</option><option>Placement</option><option>Events</option>
+            </select>
+          </div>
+          <div id="noticeList"></div>
+        </div>
+        <div class="card" style="height:fit-content">
+          <div class="ch3"><span class="ct">Notice Stats</span></div>
+          <div class="cb" id="noticeStats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- NOTICE MODAL -->
+<div class="overlay" id="noticeModal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mh">📢 Post New Notice</div>
+    <div class="fg"><label>Title *</label><input id="nTitle" placeholder="Notice title"></div>
+    <div class="fg"><label>Category</label><select id="nCat"><option>Academic</option><option>Exam</option><option>Finance</option><option>Placement</option><option>Events</option></select></div>
+    <div class="fg"><label>Audience</label><select id="nAud"><option>All</option><option>Students Only</option><option>Faculty Only</option></select></div>
+    <div class="fg"><label>Message *</label><textarea id="nMsg" rows="4" placeholder="Type your notice here…"></textarea></div>
+    <div class="mbtns">
+      <button class="bsm" onclick="closeNoticeModal()">Cancel</button>
+      <button class="bprim" onclick="postNotice()">Post Notice</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEE COLLECTION MODAL -->
+<div class="overlay" id="feeModal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="mh" id="feeModalTitle">💳 Collect Fee</div>
+    <div class="fg"><label>Amount (₹)</label><input id="feeAmt" type="number" placeholder="e.g. 42500"></div>
+    <div class="fg"><label>Payment Mode</label><select id="feeMod"><option>Online Transfer</option><option>DD / Cheque</option><option>Cash</option><option>UPI</option></select></div>
+    <div class="fg"><label>Transaction ID</label><input id="feeTxn" placeholder="TXN / DD number"></div>
+    <div class="mbtns">
+      <button class="bsm" onclick="closeFeeModal()">Cancel</button>
+      <button class="bprim" onclick="collectFee()">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+<div class="statusbar">
+  <div class="sb-item"><div class="sb-dot"></div><span id="elStatus">Electron: Detecting…</span></div>
+  <div class="sb-item">📦 Node.js: <span id="nodeVer">—</span></div>
+  <div class="sb-item">🖥 Platform: <span id="platInfo">—</span></div>
+  <div class="sb-item" style="margin-left:auto" id="sbTime"></div>
+</div>
+
+<!-- Hidden confetti canvas -->
+<div class="conf" id="confetti" style="display:none"></div>
+
+<script>
+// ── ROLE-AWARE SESSION: reads who logged in ──
+(function(){
+  const role   = sessionStorage.getItem('cc_role')  || 'admin';
+  const avatar = sessionStorage.getItem('cc_avatar') || 'AD';
+  const name   = sessionStorage.getItem('cc_name')   || 'Admin User';
+  const label  = sessionStorage.getItem('cc_label')  || 'Administrator';
+
+  const roleUI = {
+    admin:   { greet:'Welcome back, Admin',      badge:'bg-blue', dashTitle:'Admin Dashboard' },
+    faculty: { greet:'Welcome back, Professor',  badge:'bg-purple', dashTitle:'Faculty Portal' },
+    student: { greet:'Hello, Student',           badge:'bg-green',  dashTitle:'Student Portal' }
+  };
+  const ui = roleUI[role] || roleUI.admin;
+
+  // Sidebar user chip
+  const avEl   = document.getElementById('sideAvatar');
+  const nameEl = document.getElementById('sideName');
+  const roleEl = document.getElementById('sideRole');
+  if(avEl)   avEl.textContent   = avatar;
+  if(nameEl) nameEl.textContent = name;
+  if(roleEl) roleEl.textContent = label;
+
+  // Topbar greeting (dashboard only)
+  const greetEl = document.getElementById('greetName');
+  if(greetEl) greetEl.textContent = name;
+
+  // Page title tweak (dashboard only)
+  const ptEl = document.querySelector('.pt');
+  if(ptEl && ptEl.textContent==='Dashboard') ptEl.textContent = ui.dashTitle;
+
+  // Student-only: hide admin-only nav items
+  if(role==='student'){
+    document.querySelectorAll('[data-adminonly]').forEach(el=>el.style.display='none');
+  }
+  if(role==='faculty'){
+    document.querySelectorAll('[data-studentonly]').forEach(el=>el.style.display='none');
+  }
+})();
+
+/* ════════════════════════════════════
+   TEAMMATE 4 — Electron + JS + CSS Creativity
+   ════════════════════════════════════ */
+
+// ── ELECTRON ──
+const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined;
+document.getElementById('envTag').textContent    = isElectron ? 'Electron App' : 'Web Mode';
+document.getElementById('elStatus').textContent  = isElectron ? 'Electron: Connected ✓' : 'Electron: Web Preview';
+document.getElementById('nodeVer').textContent   = isElectron ? (window.electronAPI.nodeVersion||'v18') : 'N/A';
+document.getElementById('platInfo').textContent  = isElectron ? (window.electronAPI.platform||'—') : navigator.platform;
+setInterval(()=>{ document.getElementById('sbTime').textContent=new Date().toLocaleTimeString('en-IN'); },1000);
+
+// ── CSS ANIMATION for SVG donut ──
+const style=document.createElement('style');
+style.textContent='@keyframes dashIn{from{stroke-dashoffset:263.9}to{stroke-dashoffset:34.3}}';
+document.head.appendChild(style);
+
+// ── DATA ──
+const names=['Aarav Sharma','Priya Mehta','Rohan Verma','Sneha Patel','Karthik Rao','Divya Nair','Arjun Singh','Pooja Reddy','Vikram Kumar','Ananya Iyer','Siddharth Joshi','Kavya Srinivasan'];
+const depts=['CSE','ECE','ME','Civil','MBA'];
+const students=Array.from({length:12},(_,i)=>({
+  roll:'CC'+String(i+1).padStart(3,'0'), name:names[i%names.length], dept:depts[i%depts.length], sem:(i%6)+1,
+  att:65+Math.floor(Math.random()*32)
+}));
+
+// ── COUNTER ANIMATIONS ──
+function counter(id,end,suffix='',delay=400){
+  setTimeout(()=>{ const el=document.getElementById(id); if(!el)return; let n=0;
+    const t=setInterval(()=>{ n=Math.min(n+Math.ceil(end/60),end); el.textContent=n+suffix; if(n>=end)clearInterval(t); },18);
+  },delay);
+}
+counter('sPR',94,'%',300); counter('sCA',74,'',400); counter('sBP',6,'',500);
+// Fix: avg CGPA decimal
+setTimeout(()=>{ const el=document.getElementById('sCA'); if(el)el.textContent='7.4'; },800);
+
+// ── TAB SWITCH ──
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('panel-'+t).classList.add('on');
+}
+
+// ── AUTO-SWITCH TAB FROM NAVIGATION ──
+(function(){
+  const pending=sessionStorage.getItem('pendingTab');
+  if(pending){ sessionStorage.removeItem('pendingTab'); switchTab(pending); }
+})();
+
+// ── RESULTS TABLE ──
+const grades={'9+':'O','8+':'A+','7+':'A','6+':'B+','5+':'B','0+':'F'};
+function getGrade(c){ return c>=9?'O':c>=8?'A+':c>=7?'A':c>=6?'B+':c>=5?'B':'F'; }
+const resultData=students.map(s=>({ ...s, cgpa:parseFloat((5.5+Math.random()*4.3).toFixed(1)) }));
+document.getElementById('rTbody').innerHTML=resultData.map((s,i)=>`
+  <tr style="animation-delay:${i*.04}s">
+    <td><b style="color:var(--blue)">${s.roll}</b></td>
+    <td>${s.name}</td>
+    <td><span class="badge bblu">${s.dept}</span></td>
+    <td>${s.sem}</td>
+    <td style="font-size:17px;font-weight:700;color:var(--navy)">${s.cgpa}</td>
+    <td><span class="badge bgld">${getGrade(s.cgpa)}</span></td>
+    <td><span class="badge ${s.cgpa>=5?'bpre':'babs'}">${s.cgpa>=5?'Pass':'Fail'}</span></td>
+  </tr>`).join('');
+
+// ── ATTENDANCE MARK TABLE ──
+const attSample=students.slice(0,7);
+document.getElementById('attMark').innerHTML=attSample.map((s,i)=>`
+  <tr style="animation-delay:${i*.04}s">
+    <td>${s.roll}</td><td>${s.name}</td>
+    <td><select class="att-sel att-row" data-r="${s.roll}" onchange="updateAttPct()">
+      <option value="P">Present</option><option value="A">Absent</option><option value="L">Late</option>
+    </select></td>
+  </tr>`).join('');
+
+function updateAttPct(){
+  const all=[...document.querySelectorAll('.att-row')];
+  const pct=Math.round(all.filter(s=>s.value==='P').length/all.length*100);
+  document.getElementById('attPct').textContent=pct+'% present today';
+}
+updateAttPct();
+
+function markAll(v){ document.querySelectorAll('.att-row').forEach(s=>s.value=v); updateAttPct(); }
+function saveAtt(){
+  // Electron: IPC to main process to save to DB
+  if(isElectron && window.electronAPI.saveAttendance){
+    const data=[...document.querySelectorAll('.att-row')].map(s=>({roll:s.dataset.r,status:s.value}));
+    window.electronAPI.saveAttendance(data);
+  }
+  toast('Attendance saved successfully ✓','tg');
+}
+
+// ── ATTENDANCE REPORT TABLE ──
+document.getElementById('attTbody').innerHTML=students.map((s,i)=>{
+  const total=60, present=Math.round(s.att/100*total), absent=total-present;
+  return `<tr style="animation-delay:${i*.04}s">
+    <td><b>${s.roll}</b></td><td>${s.name}</td><td>${total}</td>
+    <td style="color:var(--success);font-weight:500">${present}</td>
+    <td style="color:var(--danger)">${absent}</td>
+    <td style="font-weight:600;color:${s.att>=75?'var(--blue)':'var(--danger)'}">${s.att}%</td>
+    <td><span class="badge ${s.att>=75?'bpre':'babs'}">${s.att>=75?'OK':'Low ⚠'}</span></td>
+  </tr>`;
+}).join('');
+
+function exportAtt(){
+  const rows=[['Roll','Name','Total','Present','Absent','%','Status']];
+  students.forEach(s=>{ const total=60,pres=Math.round(s.att/100*total); rows.push([s.roll,s.name,total,pres,total-pres,s.att+'%',s.att>=75?'OK':'Low']); });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  if(isElectron&&window.electronAPI.saveFile) window.electronAPI.saveFile(csv,'attendance_report.csv');
+  else { const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='attendance_report.csv'; a.click(); }
+  toast('Attendance CSV exported ✓','tg');
+}
+
+// ── TIMETABLE ──
+const days=['Mon','Tue','Wed','Thu','Fri'];
+const times=['8–9 AM','9–10 AM','10–11 AM','11–12 PM'];
+const ttCSE=[
+  [{s:'DSA',r:'A101',bg:'#E3F2FD',tc:'#1565C0'},{s:'DBMS',r:'A102',bg:'#E8F5E9',tc:'#2E7D32'},{s:'',r:''},{s:'OS',r:'A101',bg:'#FFF3E0',tc:'#E65100'},{s:'Networks',r:'B204',bg:'#F3E5F5',tc:'#7B1FA2'}],
+  [{s:'',r:''},{s:'DSA Lab',r:'CS Lab',bg:'#E8EAF6',tc:'#3949AB'},{s:'DSA Lab',r:'CS Lab',bg:'#E8EAF6',tc:'#3949AB'},{s:'',r:''},{s:'DBMS',r:'A102',bg:'#E8F5E9',tc:'#2E7D32'}],
+  [{s:'OS',r:'A101',bg:'#FFF3E0',tc:'#E65100'},{s:'',r:''},{s:'Networks',r:'B204',bg:'#F3E5F5',tc:'#7B1FA2'},{s:'DSA',r:'A101',bg:'#E3F2FD',tc:'#1565C0'},{s:'',r:''}],
+  [{s:'DBMS Lab',r:'DB Lab',bg:'#F1F8E9',tc:'#558B2F'},{s:'DBMS Lab',r:'DB Lab',bg:'#F1F8E9',tc:'#558B2F'},{s:'',r:''},{s:'',r:''},{s:'OS',r:'A101',bg:'#FFF3E0',tc:'#E65100'}],
+];
+function renderTT(){
+  let html='<div class="tt-hd"></div>'+days.map(d=>`<div class="tt-hd">${d}</div>`).join('');
+  times.forEach((t,i)=>{
+    html+=`<div class="tt-tm">${t}</div>`;
+    days.forEach((_,j)=>{
+      const c=ttCSE[i]&&ttCSE[i][j]||{s:'',r:''};
+      html+=c.s
+        ?`<div class="tt-cell" style="background:${c.bg};color:${c.tc}"><span class="tt-sub">${c.s}</span><span class="tt-rm">${c.r}</span></div>`
+        :'<div class="tt-cell tt-emp">—</div>';
+    });
+  });
+  document.getElementById('ttGrid').innerHTML=html;
+}
+renderTT();
+
+// ── FEE DATA ──
+let feeData=students.map(s=>{ const total=85000, paid=Math.round(Math.random()*total); return {...s,total,paid,balance:total-paid}; });
+let activeFeeRoll=null;
+function renderFees(){
+  document.getElementById('feeTbody').innerHTML=feeData.map((f,i)=>{
+    const pct=Math.round(f.paid/f.total*100);
+    const st=pct===100?'Paid':pct>50?'Partial':'Pending';
+    return `<tr style="animation-delay:${i*.04}s">
+      <td><b>${f.roll}</b></td><td>${f.name}</td>
+      <td>₹${(f.total/1000).toFixed(0)}k</td>
+      <td>₹${(f.paid/1000).toFixed(1)}k</td>
+      <td style="color:${f.balance>0?'var(--danger)':'var(--success)'};font-weight:500">₹${(f.balance/1000).toFixed(1)}k</td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="pw" style="min-width:60px"><div class="pb ${pct>=75?'pgr':'prd'}" style="width:${pct}%;animation:feeIn 1s ease both;animation-delay:${i*.05}s"></div></div>
+        <span style="font-size:11.5px">${pct}%</span></div></td>
+      <td><span class="badge ${st==='Paid'?'bpre':st==='Partial'?'bblu':'babs'}">${st}</span></td>
+      <td><button class="bsm" style="font-size:11px;padding:4px 10px" onclick="openFeeModal('${f.roll}')">Collect</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('unpaidCount').textContent=feeData.filter(f=>f.balance>0).length;
+}
+renderFees();
+
+function openFeeModal(roll){ activeFeeRoll=roll; const f=feeData.find(x=>x.roll===roll); document.getElementById('feeModalTitle').textContent=`💳 Collect Fee — ${f.name}`; document.getElementById('feeAmt').value=f.balance; document.getElementById('feeModal').classList.add('open'); }
+function closeFeeModal(){ document.getElementById('feeModal').classList.remove('open'); }
+function collectFee(){
+  const amt=parseFloat(document.getElementById('feeAmt').value)||0;
+  const f=feeData.find(x=>x.roll===activeFeeRoll);
+  if(f){ f.paid=Math.min(f.paid+amt,f.total); f.balance=f.total-f.paid; }
+  closeFeeModal(); renderFees();
+  toast(`Payment of ₹${(amt/1000).toFixed(1)}k recorded ✓`,'tg');
+}
+function sendReminders(){
+  const n=feeData.filter(f=>f.balance>0).length;
+  if(isElectron&&window.electronAPI.sendNotification) window.electronAPI.sendNotification('Fee Reminders',`Reminders sent to ${n} students`);
+  toast(`📧 Reminders sent to ${n} students`,'tb2');
+}
+
+// ── NOTICES ──
+let notices=[
+  {id:1,cls:'ni2',cat:'Exam',   t:'Internal Assessment – Week 3', m:'Starts Monday for all departments. Carry ID cards.',by:"Principal's Office",time:'1 hr ago'},
+  {id:2,cls:'nw2',cat:'Academic',t:'Library Book Return',          m:'All books due by 10th June.',by:'Library',time:'Today'},
+  {id:3,cls:'ns2',cat:'Placement',t:'Placement Drive – TCS & Infosys',m:'Visiting 15th June. Register by 5th.',by:'Placement Cell',time:'Yesterday'},
+  {id:4,cls:'nw2',cat:'Finance', t:'Semester Fee Due',             m:'Due by 30th June. Late payment attracts 2% penalty.',by:'Finance Dept',time:'2 days ago'},
+];
+let noticeId=5;
+function renderNotices(){
+  const f=document.getElementById('ncatFilter').value;
+  const filtered=f?notices.filter(n=>n.cat===f):notices;
+  document.getElementById('noticeList').innerHTML=filtered.map((n,i)=>`
+    <div class="notice ${n.cls}" style="animation-delay:${i*.06}s" id="n-${n.id}">
+      <button class="notice-del" onclick="deleteNotice(${n.id})">✕</button>
+      <span style="font-size:10.5px;background:rgba(255,255,255,.5);padding:1px 7px;border-radius:10px;margin-bottom:6px;display:inline-block">${n.cat}</span>
+      <b> ${n.t}</b> — ${n.m}
+      <div class="nt">Posted by ${n.by} · ${n.time}</div>
+    </div>`).join('');
+  // Stats
+  const cats={};
+  notices.forEach(n=>{ cats[n.cat]=(cats[n.cat]||0)+1; });
+  document.getElementById('noticeStats').innerHTML=`
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Total notices: <b style="color:var(--navy)">${notices.length}</b></div>
+    ${Object.entries(cats).map(([c,v])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:8px"><span>${c}</span><span class="badge bblu">${v}</span></div>`).join('')}`;
+}
+renderNotices();
+
+function openNoticeModal(){ document.getElementById('noticeModal').classList.add('open'); }
+function closeNoticeModal(){ document.getElementById('noticeModal').classList.remove('open'); }
+function postNotice(){
+  const t=document.getElementById('nTitle').value.trim();
+  const m=document.getElementById('nMsg').value.trim();
+  if(!t||!m){ toast('Please fill title and message','tr2'); return; }
+  const cat=document.getElementById('nCat').value;
+  notices.unshift({id:noticeId++,cls:'ni2',cat,t,m,by:'Admin',time:'Just now'});
+  renderNotices(); closeNoticeModal();
+  document.getElementById('nTitle').value=''; document.getElementById('nMsg').value='';
+  // Electron native notification
+  if(isElectron&&window.electronAPI.sendNotification) window.electronAPI.sendNotification('New Notice Posted',t);
+  toast('Notice posted successfully ✓','tg');
+}
+function deleteNotice(id){ notices=notices.filter(n=>n.id!==id); renderNotices(); toast('Notice deleted','tr2'); }
+
+// ── PUBLISH RESULTS (CONFETTI) ──
+function publishResults(){
+  toast('🎉 Results published to all students!','tg');
+  const c=document.getElementById('confetti'); c.style.display='block'; c.innerHTML='';
+  const cols=['#1565C0','#F9A825','#42A5F5','#43A047','#E53935','#9C27B0','#FF9800'];
+  for(let i=0;i<60;i++){
+    const b=document.createElement('div'); b.className='cbit';
+    b.style.cssText=`left:${Math.random()*100}%;background:${cols[~~(Math.random()*cols.length)]};animation-duration:${1.5+Math.random()*1.5}s;animation-delay:${Math.random()*.6}s;width:${6+Math.random()*8}px;height:${10+Math.random()*8}px;`;
+    c.appendChild(b);
+  }
+  setTimeout(()=>{ c.style.display='none'; },3000);
+  // Electron notification
+  if(isElectron&&window.electronAPI.sendNotification) window.electronAPI.sendNotification('Campus Connect','Results published successfully!');
+}
+
+// ── PRINT REPORT ──
+function printReport(){
+  if(isElectron&&window.electronAPI.printWindow) { window.electronAPI.printWindow(); return; }
+  window.print();
+  toast('Print dialog opened','tb2');
+}
+
+// ── EXPORT RESULTS ──
+function exportResults(){
+  const rows=[['Roll No','Name','Dept','Sem','CGPA','Grade','Status']];
+  resultData.forEach(s=>rows.push([s.roll,s.name,s.dept,s.sem,s.cgpa,getGrade(s.cgpa),s.cgpa>=5?'Pass':'Fail']));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  if(isElectron&&window.electronAPI.saveFile) window.electronAPI.saveFile(csv,'results.csv');
+  else { const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='results.csv'; a.click(); }
+  toast('Results exported ✓','tg');
+}
+
+// ── TOAST ──
+function toast(msg,cls='tb2'){
+  const w=document.getElementById('toasts');
+  const el=document.createElement('div'); el.className=`toast ${cls}`; el.textContent=msg;
+  w.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),350); },3200);
+}
+</script>
+</body>
+</html>
