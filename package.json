@@ -1,0 +1,33 @@
+{
+  "name": "campus-connect",
+  "version": "2.0.0",
+  "description": "Campus Connect — College Management Desktop Portal built with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev":   "cross-env NODE_ENV=development electron .",
+    "build": "electron-builder --win --mac --linux"
+  },
+  "build": {
+    "appId": "com.campusconnect.portal",
+    "productName": "Campus Connect",
+    "files": [
+      "*.html",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": { "output": "dist" },
+    "win":   { "target": "nsis"     },
+    "mac":   { "target": "dmg"      },
+    "linux": { "target": "AppImage" }
+  },
+  "devDependencies": {
+    "cross-env":        "^7.0.3",
+    "electron":         "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "keywords": ["electron", "college", "management", "portal"],
+  "author": "Team Campus Connect",
+  "license": "MIT"
+}
