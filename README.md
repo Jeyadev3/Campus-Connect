@@ -75,22 +75,6 @@ npm start
 
 ---
 
-## 📸 Screenshots
-
-### Login Page
-(Add screenshot here)
-
-### Dashboard
-(Add screenshot here)
-
-### Student Management
-(Add screenshot here)
-
-### Results Management
-(Add screenshot here)
-
----
-
 ## 🎯 Objective
 
 The objective of Campus Connect is to simplify academic and administrative tasks by providing a centralized platform for managing student information, results, and institutional data efficiently.
