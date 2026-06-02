@@ -110,7 +110,7 @@ The objective of Campus Connect is to simplify academic and administrative tasks
 
 ## 👨‍💻 Author
 
-**Jeyadev**
+**Jeyadev T**
 
 First-Year Computer Science Engineering Student
 
